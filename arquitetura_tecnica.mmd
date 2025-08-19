@@ -1,0 +1,49 @@
+graph TB
+    %% Estilos otimizados para modo escuro
+    classDef vc fill:#1a237e,stroke:#3f51b5,stroke-width:3px,color:#ffffff
+    classDef api fill:#4a148c,stroke:#9c27b0,stroke-width:2px,color:#ffffff
+    classDef blockchain fill:#e65100,stroke:#ff9800,stroke-width:2px,color:#ffffff
+    classDef flow fill:#1b5e20,stroke:#4caf50,stroke-width:2px,color:#ffffff
+
+    %% Credenciais Verificáveis - Core
+    subgraph "📋 Credenciais Verificáveis (W3C Standard)"
+        VC["🎫 Verifiable Credential<br/>• Issuer DID<br/>• Subject DID<br/>• Credential Schema<br/>• Proof (Digital Signature)"]:::vc
+        VP["📦 Verifiable Presentation<br/>• Holder DID<br/>• Selected Credentials<br/>• Presentation Proof"]:::vc
+    end
+
+    %% APIs Layer
+    subgraph "🔌 API Layer"
+        ISSUE["📝 Issuer API :8083<br/>POST /credentials/issue<br/>POST /credentials/revoke"]:::api
+        VERIFY["✅ Verifier API :8084<br/>POST /credentials/verify<br/>GET /credentials/status"]:::api
+        CUSTODY["🔐 Custody API :8082<br/>Wallet Management<br/>Key Operations"]:::api
+    end
+
+    %% Blockchain Smart Contracts
+    subgraph "⛓️ Blockchain Layer (Ethereum)"
+        DID_REG["📋 DIDRegistry Contract<br/>• registerCredential()<br/>• getCredential()<br/>• updateCredential()"]:::blockchain
+        STATUS["📊 StatusList2021 Contract<br/>• createStatusList()<br/>• revokeCredential()<br/>• getCredentialStatus()"]:::blockchain
+    end
+
+    %% Fluxos Principais
+    subgraph "🔄 Credential Lifecycle"
+        ISSUE_FLOW["1️⃣ ISSUANCE<br/>Create → Sign → Register"]:::flow
+        VERIFY_FLOW["2️⃣ VERIFICATION<br/>Parse → Validate → Check Status"]:::flow
+        REVOKE_FLOW["3️⃣ REVOCATION<br/>Update StatusList → Blockchain"]:::flow
+    end
+
+    %% Conexões principais com cores vibrantes
+    ISSUE -.->|"Cria VC"| VC
+    VC -.->|"Compõe VP"| VP
+    VERIFY -.->|"Valida VP"| VP
+
+    ISSUE -->|"Registra"| DID_REG
+    ISSUE -->|"Atualiza Status"| STATUS
+    VERIFY -->|"Consulta"| DID_REG
+    VERIFY -->|"Verifica Status"| STATUS
+
+    ISSUE -->|"Gerencia Chaves"| CUSTODY
+    VERIFY -->|"Acessa Wallet"| CUSTODY
+
+    ISSUE_FLOW -.->|"Executa"| ISSUE
+    VERIFY_FLOW -.->|"Executa"| VERIFY
+    REVOKE_FLOW -.->|"Executa"| ISSUE
