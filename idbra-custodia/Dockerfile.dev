@@ -1,0 +1,42 @@
+FROM openjdk:21-jdk-slim
+
+# Instalar Maven
+RUN apt-get update && apt-get install -y \
+    maven \
+    && rm -rf /var/lib/apt/lists/*
+
+# Criar usuário não-root
+RUN groupadd -r custody && useradd -r -g custody custody
+
+# Definir diretório de trabalho
+WORKDIR /app
+
+# Criar diretórios necessários com permissões corretas
+RUN mkdir -p /home/custody/.m2 /app/data && chown -R custody:custody /home/custody/.m2 /app/data
+
+# Copiar pom.xml primeiro para aproveitar cache do Docker
+COPY pom.xml .
+
+# Baixar dependências como root primeiro
+RUN mvn dependency:go-offline -B
+
+# Copiar código fonte
+COPY src ./src
+
+# Mudar propriedade dos arquivos para o usuário custody
+RUN chown -R custody:custody /app
+
+# Mudar para usuário não-root
+USER custody
+
+# Expor portas
+EXPOSE 8080 35729
+
+# Variáveis de ambiente para desenvolvimento
+ENV JAVA_OPTS="-Xmx1g -Xms512m -Dspring.devtools.restart.enabled=true -Dspring.devtools.livereload.enabled=true"
+ENV BESU_NODE_URL="http://144.22.179.183"
+ENV BESU_CHAIN_ID="1337"
+ENV SPRING_PROFILES_ACTIVE="dev"
+
+# Comando para executar em modo desenvolvimento com hot reload
+CMD ["mvn", "spring-boot:run", "-Dspring-boot.run.jvmArguments='-Dspring.devtools.restart.enabled=true -Dspring.devtools.livereload.enabled=true'"]

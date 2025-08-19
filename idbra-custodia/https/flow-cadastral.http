@@ -1,0 +1,40 @@
+### 1. Importar wallet administrativa no sistema (usando variável de ambiente)
+POST http://147.93.11.54:8082/api/wallets/import-admin
+
+### 2. CRIAÇÃO DE WALLET - BASE PARA OPERAÇÕES
+# @name createMainWallet
+POST http://147.93.11.54:8082/api/wallets?name=WalletCadastral&description=Wallet para Dados Cadastrais
+Content-Type: application/json
+
+### 2.2-2.5 [Mesmos endpoints de verificação e concessão de roles]
+
+### 3. CRIAÇÃO DE STATUS LIST
+# @name createStatusList
+POST http://147.93.11.54:8082/api/statuslist?listId=cadastral-001&uri=https://idbra.gov.br/status/cadastral-001.json&purpose=revocation&issuer=did:web:idbra.gov.br&issuerWalletAddress={{createMainWallet.response.body.address}}
+
+### 4. EMISSÃO DE CREDENCIAL
+# @name createCredential
+POST http://147.93.11.54:8082/api/credentials
+Content-Type: application/json
+
+{
+  "issuerDid": "did:web:idbra.gov.br",
+  "holderDid": "did:web:cidadao.gov.br",
+  "credentialType": "PersonalData",
+  "credentialSubject": {
+    "id": "did:web:cidadao.gov.br",
+    "personalInfo": {
+      "name": "Maria Silva",
+      "cpf": "123.456.789-00",
+      "birthDate": "1990-05-15",
+      "motherName": "Ana Silva",
+      "phone": "+55 11 98765-4321",
+      "email": "maria.silva@email.com"
+    }
+  },
+  "expiresAt": "2029-12-31T23:59:59",
+  "statusListId": "cadastral-001",
+  "issuerWalletAddress": "{{createMainWallet.response.body.address}}"
+}
+
+[Demais endpoints de verificação e consulta seguem o mesmo padrão]

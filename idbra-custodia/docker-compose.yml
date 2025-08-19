@@ -1,0 +1,64 @@
+services:
+  custody-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: custody-service-dev
+    ports:
+      - "8082:8080"
+      - "35729:35729"  # Porta para LiveReload
+    environment:
+      # Blockchain Configuration
+      - BESU_NODE_URL=${BESU_NODE_URL:-http://144.22.179.183}
+      - WEB3J_CHAIN_ID=${WEB3J_CHAIN_ID:-1337}
+      - WEB3J_NETWORK_ID=${WEB3J_NETWORK_ID:-1337}
+
+      # Smart Contract Addresses
+      - DID_REGISTRY_ADDRESS=${DID_REGISTRY_ADDRESS:-0x8553c57aC9a666EAfC517Ffc4CF57e21d2D3a1cb}
+      - STATUS_LIST_MANAGER_ADDRESS=${STATUS_LIST_MANAGER_ADDRESS:-0x93a284C91768F3010D52cD37f84f22c5052be40b}
+
+      # Blockchain Network Configuration
+      - BLOCKCHAIN_CHAIN_ID=${BLOCKCHAIN_CHAIN_ID:-1337}
+      - BLOCKCHAIN_RPC_URL=${BLOCKCHAIN_RPC_URL:-http://144.22.179.183}
+      - ADMIN_PRIVATE_KEY=${ADMIN_PRIVATE_KEY:-8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63}
+
+      # Application Configuration
+      - SPRING_PROFILES_ACTIVE=dev
+      - JAVA_OPTS=-Xmx1g -Xms512m
+
+      # Crypto Configuration
+      - CRYPTO_MASTER_PASSWORD=${CRYPTO_MASTER_PASSWORD:-custody_master_password_2024}
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data  # Volume para persistir banco H2
+      - maven-repo:/home/custody/.m2
+    networks:
+      - custody-network
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-dev
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - custody-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  redis-data:
+  maven-repo:
+
+networks:
+  custody-network:
+    driver: bridge

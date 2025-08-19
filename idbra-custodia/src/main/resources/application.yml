@@ -1,0 +1,87 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: custody-service
+  profiles:
+    active: dev
+
+  # Configuração do banco de dados H2 persistente
+  datasource:
+    url: jdbc:h2:file:./data/custodydb;DB_CLOSE_ON_EXIT=FALSE;AUTO_RECONNECT=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+
+  # Configuração JPA/Hibernate
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update  # Mudança de create-drop para update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Console H2 (para desenvolvimento)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: true
+        web-port: 8082
+
+web3:
+  node:
+    url: ${BESU_NODE_URL:http://144.22.179.183}
+  chain:
+    id: ${BESU_CHAIN_ID:1337}
+  wallet:
+    keystore:
+      path: ${WALLET_KEYSTORE_PATH:}
+    password: ${WALLET_PASSWORD:}
+
+web3j:
+  client-address: ${BESU_NODE_URL:http://144.22.179.183:8545}
+  chain-id: ${WEB3J_CHAIN_ID:1337}
+  network-id: ${WEB3J_NETWORK_ID:1337}
+
+# Configuração dos Smart Contracts
+blockchain:
+  did-registry-address: ${DID_REGISTRY_ADDRESS:0x8553c57aC9a666EAfC517Ffc4CF57e21d2D3a1cb}
+  status-list-manager-address: ${STATUS_LIST_MANAGER_ADDRESS:0x93a284C91768F3010D52cD37f84f22c5052be40b}
+  network:
+    chain-id: ${BLOCKCHAIN_CHAIN_ID:1337}
+    rpc-url: ${BLOCKCHAIN_RPC_URL:http://144.22.179.183:8545}
+
+# Configurações de criptografia
+crypto:
+  master:
+    password: ${CRYPTO_MASTER_PASSWORD:defaultMasterPassword123!}
+  algorithm: AES
+  key:
+    length: 256
+  iterations: 65536
+
+logging:
+  level:
+    br.com.idhub.custody: DEBUG
+    org.web3j: INFO
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

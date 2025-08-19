@@ -1,0 +1,64 @@
+flowchart LR
+
+  %% Grupos
+  subgraph UEP["Usuarios e Parceiros"]
+    U["Carteira do usuario"]
+    P["Parceiro verificador"]
+    ADM["Administrador"]
+  end
+
+  subgraph GATE["Gateway"]
+    K["Kong"]
+  end
+
+  subgraph ID["Servicos de Identidade"]
+    ISS["API Emissor"]
+    VER["API Verificador"]
+    CUST["Servico de custodia"]
+    ANCH["Servico de ancora"]
+    RES["Resolvedor did e status"]
+    KC["Keycloak"]
+  end
+
+  subgraph OFF["Armazenamento off chain"]
+    S3["StatusList store"]
+    DID["DID docs did web"]
+  end
+
+  subgraph BESU["Blockchain Besu QBFT"]
+    DIDSC["SC DID registry"]
+    STSC["SC StatusList manager"]
+  end
+
+  %% Emissao
+  U -->|solicita emissao| K
+  K -->|rota para emissor| ISS
+  ISS -->|autentica escopo| KC
+  KC -->|token valido| ISS
+  ISS -->|pede assinatura| CUST
+  CUST -->|assinatura ok| ISS
+  ISS -->|atualiza statuslist| S3
+  ISS -->|publica ancora| ANCH
+  ANCH -->|grava status on chain| STSC
+  ANCH -->|atualiza did opcional| DIDSC
+  ISS -->|retorna credencial| K
+  K -->|entrega credencial| U
+
+  %% Verificacao
+  P -->|inicia verificacao| K
+  K -->|rota para verificador| VER
+  VER -->|resolver chaves e status| RES
+  RES -->|obter did document| DID
+  RES -->|ler ancora de status| STSC
+  RES -->|baixar statuslist| S3
+  VER -->|retorna decisao| K
+  K -->|entrega resultado| P
+
+  %% Revogacao
+  ADM -->|solicita revogacao| K
+  K -->|rota para emissor| ISS
+  ISS -->|marca como revogado| S3
+  ISS -->|publica nova versao| ANCH
+  ANCH -->|atualiza ancora| STSC
+  ISS -->|retorna revogado| K
+  K -->|confirma revogacao| ADM

@@ -1,0 +1,19 @@
+sequenceDiagram
+  autonumber
+  participant P as Parceiro Verificador
+  participant GW as Gateway
+  participant V as Verifier API
+  participant R as Resolver
+  participant B as Besu SC
+  participant S as StatusList Store
+  participant D as DID Docs
+
+  P->>GW: iniciar verificacao
+  GW->>V: requisicao de verificacao
+  V->>R: resolver chaves e status
+  R->>D: obter did document
+  R->>B: ler ancora de statuslist
+  R->>S: baixar statuslist pela uri
+  R-->>V: chaves e status validados
+  V-->>GW: decisao
+  GW-->>P: resultado

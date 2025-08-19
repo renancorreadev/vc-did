@@ -1,0 +1,237 @@
+### 1. Importar wallet administrativa no sistema (usando variável de ambiente)
+POST http://147.93.11.54:8082/api/wallets/import-admin
+
+### ========================================
+### 2. CRIAÇÃO DE WALLET - BASE PARA OPERAÇÕES
+### ========================================
+
+### 2.1 Criar wallet principal para testes
+# @name createMainWallet
+POST http://147.93.11.54:8082/api/wallets?name=WalletCadastral&description=Wallet para Dados Cadastrais
+Content-Type: application/json
+
+###
+
+### 2.2 Verificar wallet criada
+# @name checkMainWallet
+GET http://147.93.11.54:8082/api/wallets/{{createMainWallet.response.body.address}}
+
+###
+
+### 2.3 Verificar se wallet tem ISSUER_ROLE
+# @name checkIssuerRole
+GET http://147.93.11.54:8082/api/blockchain/check-role/{{createMainWallet.response.body.address}}
+
+###
+
+### 2.4 Conceder ISSUER_ROLE para a wallet (se necessário)
+# @name grantIssuerRole
+POST http://147.93.11.54:8082/api/blockchain/grant-issuer-role/{{createMainWallet.response.body.address}}
+
+###
+
+### 2.5 Verificar novamente se wallet tem ISSUER_ROLE após concessão
+# @name checkIssuerRoleAfterGrant
+GET http://147.93.11.54:8082/api/blockchain/check-role/{{createMainWallet.response.body.address}}
+
+###
+
+### ========================================
+### 3. CRIAÇÃO DE STATUS LIST - BASE PARA CREDENCIAIS
+### ========================================
+
+### 3.1 Criar StatusList para dados cadastrais
+# @name createStatusList
+POST http://147.93.11.54:8082/api/statuslist?listId=dados-cadastrais-001&uri=https://idbra.example/status/cadastral-002.json&purpose=revocation&issuer=did:web:idbra.gov.br&issuerWalletAddress={{createMainWallet.response.body.address}}
+
+###
+
+### 3.2 Verificar StatusList criada
+# @name checkStatusList
+GET http://147.93.11.54:8082/api/statuslist/dados-cadastrais-001
+
+###
+
+### 3.3 Verificar metadados da StatusList
+# @name checkStatusListMetadata
+GET http://147.93.11.54:8082/api/statuslist/dados-cadastrais-001/metadata
+
+###
+
+### ========================================
+### 4. EMISSÃO DE CREDENCIAL - TESTE PRINCIPAL
+### ========================================
+
+### 4.1 Criar credencial verificável
+# @name createCredential
+POST http://147.93.11.54:8082/api/credentials
+Content-Type: application/json
+
+{
+  "issuerDid": "did:web:idbra.gov.br",
+  "holderDid": "did:web:cidadao.gov.br",
+  "credentialType": "PersonalData",
+  "credentialSubject": {
+    "id": "did:web:cidadao.gov.br",
+    "personalInfo": {
+      "name": "Maria Silva",
+      "cpf": "123.456.789-00",
+      "birthDate": "1985-03-15",
+      "motherName": "Ana Silva",
+      "fatherName": "José Silva",
+      "nationality": "Brasileira",
+      "birthPlace": "São Paulo, SP"
+    },
+    "contact": {
+      "email": "maria.silva@email.com",
+      "phone": "+55 11 98765-4321"
+    }
+  },
+  "expiresAt": "2029-06-15T06:00:00",
+  "statusListId": "dados-cadastrais-001",
+  "issuerWalletAddress": "{{createMainWallet.response.body.address}}"
+}
+
+###
+
+### 4.2 Verificar credencial criada
+# @name checkCredential
+GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}
+
+###
+
+### ========================================
+### 5. VERIFICAÇÃO DE CREDENCIAL - VALIDAÇÃO
+### ========================================
+
+### 5.1 Verificar credencial com JWT
+# @name verifyCredential
+POST http://147.93.11.54:8082/api/credentials/verify
+Content-Type: text/plain
+
+{{createCredential.response.body.jwt}}
+
+###
+
+### 5.2 Verificar StatusList após emissão
+# @name checkStatusListAfterIssue
+GET http://147.93.11.54:8082/api/statuslist/dados-cadastrais-001/metadata
+
+###
+
+### ========================================
+### 6. REVOGAÇÃO DE CREDENCIAL - TESTE DE REVOGAÇÃO
+### ========================================
+
+### 6.1 Revogar credencial
+# @name revokeCredential
+POST http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/revoke
+
+###
+
+### 6.2 Verificar credencial revogada
+# @name verifyRevokedCredential
+POST http://147.93.11.54:8082/api/credentials/verify
+Content-Type: text/plain
+
+{{createCredential.response.body.jwt}}
+
+###
+
+### 6.3 Verificar StatusList após revogação
+# @name checkStatusListAfterRevoke
+GET http://147.93.11.54:8082/api/statuslist/dados-cadastrais-001/metadata
+
+###
+
+### ========================================
+### 7. OPERAÇÕES DE CONSULTA - VERIFICAÇÃO DE DADOS
+### ========================================
+
+### 7.1 Listar todas as credenciais
+# @name listAllCredentials
+GET http://147.93.11.54:8082/api/credentials
+
+###
+
+### 7.2 Listar credenciais por emissor
+# @name listCredentialsByIssuer
+GET http://147.93.11.54:8082/api/credentials/issuer/did:web:idbra.gov.br
+
+###
+
+### 7.3 Listar credenciais por holder
+# @name listCredentialsByHolder
+GET http://147.93.11.54:8082/api/credentials/holder/did:web:cidadao.gov.br
+
+###
+
+### 7.4 Listar credenciais por status
+# @name listCredentialsByStatus
+GET http://147.93.11.54:8082/api/credentials/status/REVOKED
+
+###
+
+### ========================================
+### 8. OPERAÇÕES DE STATUS LIST - GERENCIAMENTO
+### ========================================
+
+### 8.1 Listar todas as StatusLists
+# @name listAllStatusLists
+GET http://147.93.11.54:8082/api/statuslist
+
+###
+
+### 8.2 Obter StatusList como JSON
+# @name getStatusListJson
+GET http://147.93.11.54:8082/api/statuslist/dados-cadastrais-001/json
+
+###
+
+### 8.3 Verificar status de uma credencial específica
+# @name checkCredentialStatus
+GET http://147.93.11.54:8082/api/statuslist/dados-cadastrais-001/status/0
+
+###
+
+### ========================================
+### 9. OPERAÇÕES DE WALLET - GERENCIAMENTO
+### ========================================
+
+### 9.1 Listar todas as wallets
+# @name listAllWallets
+GET http://147.93.11.54:8082/api/wallets
+
+###
+
+### 9.2 Verificar saldo da wallet principal
+# @name checkWalletBalance
+GET http://147.93.11.54:8082/api/wallets/{{createMainWallet.response.body.address}}/balance
+
+###
+
+
+###
+
+### ========================================
+### 10. TESTE DE INTEGRIDADE - VERIFICAÇÃO FINAL
+### ========================================
+
+### 10.1 Verificar saúde final
+# @name finalHealthCheck
+GET http://147.93.11.54:8082/actuator/health
+
+###
+
+### 10.2 Verificar status blockchain final
+# @name finalBlockchainStatus
+GET http://147.93.11.54:8082/api/blockchain/status
+
+###
+
+### 10.3 Verificar metadados finais da StatusList
+# @name finalStatusListMetadata
+GET http://147.93.11.54:8082/api/statuslist/dados-cadastrais-001/metadata
+
+###
+

@@ -1,0 +1,305 @@
+
+### 1. Importar wallet administrativa no sistema (usando variável de ambiente)
+POST http://147.93.11.54:8082/api/wallets/import-admin
+
+
+
+### ========================================
+### 2. CRIAÇÃO DE WALLET - BASE PARA OPERAÇÕES
+### ========================================
+
+### 2.1 Criar wallet principal para testes
+# @name createMainWallet
+POST http://147.93.11.54:8082/api/wallets?name=WalletPrincipal&description=Wallet
+Content-Type: application/json
+
+###
+
+### 2.2 Verificar wallet criada
+# @name checkMainWallet
+GET http://147.93.11.54:8082/api/wallets/{{createMainWallet.response.body.address}}
+
+###
+
+### 2.3 Verificar se wallet tem ISSUER_ROLE
+# @name checkIssuerRole
+GET http://147.93.11.54:8082/api/blockchain/check-role/{{createMainWallet.response.body.address}}
+
+###
+
+### 2.4 Conceder ISSUER_ROLE para a wallet (se necessário)
+### NOTA: Usa a chave administrativa configurada automaticamente (ADMIN_PRIVATE_KEY)
+# @name grantIssuerRole
+POST http://147.93.11.54:8082/api/blockchain/grant-issuer-role/{{createMainWallet.response.body.address}}
+
+###
+
+### 2.5 Verificar novamente se wallet tem ISSUER_ROLE após concessão
+# @name checkIssuerRoleAfterGrant
+GET http://147.93.11.54:8082/api/blockchain/check-role/{{createMainWallet.response.body.address}}
+
+###
+
+### ========================================
+### 3. CRIAÇÃO DE STATUS LIST - BASE PARA CREDENCIAIS
+### ========================================
+
+### 3.1 Criar StatusList para credenciais universitárias
+# @name createStatusList
+POST http://147.93.11.54:8082/api/statuslist?listId=teste-universitario-001&uri=https://teste.com/status/001.json&purpose=revocation&issuer=did:web:teste.com&issuerWalletAddress={{createMainWallet.response.body.address}}
+
+###
+
+### 3.2 Verificar StatusList criada
+# @name checkStatusList
+GET http://147.93.11.54:8082/api/statuslist/teste-universitario-001
+
+###
+
+### 3.3 Verificar metadados da StatusList
+# @name checkStatusListMetadata
+GET http://147.93.11.54:8082/api/statuslist/teste-universitario-001/metadata
+
+###
+
+### ========================================
+### 4. EMISSÃO DE CREDENCIAL - TESTE PRINCIPAL
+### ========================================
+
+### 4.1 Criar credencial verificável
+# @name createCredential
+POST http://147.93.11.54:8082/api/credentials
+Content-Type: application/json
+
+{
+  "issuerDid": "did:web:teste.com",
+  "holderDid": "did:web:usuario.com",
+  "credentialType": "UniversityDegree",
+  "credentialSubject": {
+    "id": "did:web:usuario.com",
+    "degree": {
+      "type": "BachelorDegree",
+      "name": "Bachelor of Science in Computer Science",
+      "university": "Test University",
+      "graduationDate": "2024-06-15",
+      "gpa": "3.8"
+    }
+  },
+  "expiresAt": "2029-06-15T06:00:00",
+  "statusListId": "teste-universitario-001",
+  "issuerWalletAddress": "{{createMainWallet.response.body.address}}"
+}
+
+###eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6d2ViOnVzdWFyaW8uY29tIiwiaXNzIjoiZGlkOndlYjp0ZXN0ZS5jb20iLCJleHAiOjE4NzYxOTc2MDAsImlhdCI6MTc1NTUyODgwOCwidmMiOnsiQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy9leGFtcGxlcy92MSJdLCJjcmVkZW50aWFsU3RhdHVzIjp7InR5cGUiOiJTdGF0dXNMaXN0MjAyMUVudHJ5Iiwic3RhdHVzUHVycG9zZSI6InJldm9jYXRpb24iLCJzdGF0dXNMaXN0SW5kZXgiOjEsImlkIjoiaHR0cHM6Ly9pZGJyYS5leGFtcGxlL3N0YXR1cy90ZXN0ZS11bml2ZXJzaXRhcmlvLTAwMS5qc29uIzEiLCJzdGF0dXNMaXN0Q3JlZGVudGlhbCI6Imh0dHBzOi8vaWRicmEuZXhhbXBsZS9zdGF0dXMvdGVzdGUtdW5pdmVyc2l0YXJpby0wMDEuanNvbiJ9LCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiVW5pdmVyc2l0eURlZ3JlZSJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJpZCI6ImRpZDp3ZWI6dXN1YXJpby5jb20iLCJkZWdyZWUiOnsidHlwZSI6IkJhY2hlbG9yRGVncmVlIiwibmFtZSI6IkJhY2hlbG9yIG9mIFNjaWVuY2UgaW4gQ29tcHV0ZXIgU2NpZW5jZSIsInVuaXZlcnNpdHkiOiJUZXN0IFVuaXZlcnNpdHkiLCJncmFkdWF0aW9uRGF0ZSI6IjIwMjQtMDYtMTUiLCJncGEiOiIzLjgifX19LCJqdGkiOiJ1cm46dXVpZDpiOWRmMjQ5Ny02MTIwLTQ5YzAtYjg1MS1kNjIyZjkwNGQyOTQifQ==.simulated_signature
+
+### 4.2 Verificar credencial criada
+# @name checkCredential
+GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}
+
+###
+
+### ========================================
+### 5. VERIFICAÇÃO DE CREDENCIAL - VALIDAÇÃO
+### ========================================
+
+### 5.1 Verificar credencial com JWT
+# @name verifyCredential
+POST http://147.93.11.54:8082/api/credentials/verify
+Content-Type: text/plain
+
+{{createCredential.response.body.jwt}}
+
+###
+
+### 5.2 Verificar StatusList após emissão
+# @name checkStatusListAfterIssue
+GET http://147.93.11.54:8082/api/statuslist/teste-universitario-001/metadata
+
+###
+
+### ========================================
+### 6. REVOGAÇÃO DE CREDENCIAL - TESTE DE REVOGAÇÃO
+### ========================================
+
+### 6.1 Revogar credencial (simular diploma falsificado)
+# @name revokeCredential
+POST http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/revoke
+
+###
+
+### 6.2 Verificar credencial revogada
+# @name verifyRevokedCredential
+POST http://147.93.11.54:8082/api/credentials/verify
+Content-Type: text/plain
+
+{{createCredential.response.body.jwt}}
+
+###
+
+### 6.3 Verificar StatusList após revogação
+# @name checkStatusListAfterRevoke
+GET http://147.93.11.54:8082/api/statuslist/teste-universitario-001/metadata
+
+###
+
+### ========================================
+### 7. OPERAÇÕES DE CONSULTA - VERIFICAÇÃO DE DADOS
+### ========================================
+
+### 7.1 Listar todas as credenciais
+# @name listAllCredentials
+GET http://147.93.11.54:8082/api/credentials
+
+###
+
+### 7.2 Listar credenciais por emissor
+# @name listCredentialsByIssuer
+GET http://147.93.11.54:8082/api/credentials/issuer/did:web:teste.com
+
+###
+
+### 7.3 Listar credenciais por holder
+# @name listCredentialsByHolder
+GET http://147.93.11.54:8082/api/credentials/holder/did:web:usuario.com
+
+###
+
+### 7.4 Listar credenciais por status
+# @name listCredentialsByStatus
+GET http://147.93.11.54:8082/api/credentials/status/REVOKED
+
+###
+
+### ========================================
+### 8. OPERAÇÕES DE STATU SLIST - GERENCIAMENTO
+### ========================================
+
+### 8.1 Listar todas as StatusLists
+# @name listAllStatusLists
+GET http://147.93.11.54:8082/api/statuslist
+
+###
+
+### 8.2 Obter StatusList como JSON
+# @name getStatusListJson
+GET http://147.93.11.54:8082/api/statuslist/teste-universitario-001/json
+
+###
+
+### 8.3 Verificar status de uma credencial específica
+# @name checkCredentialStatus
+GET http://147.93.11.54:8082/api/statuslist/teste-universitario-001/status/0
+
+###
+
+### ========================================
+### 9. OPERAÇÕES DE WALLET - GERENCIAMENTO
+### ========================================
+
+### 9.1 Listar todas as wallets
+# @name listAllWallets
+GET http://147.93.11.54:8082/api/wallets
+
+###
+
+### 9.2 Verificar saldo da wallet principal
+# @name checkWalletBalance
+GET http://147.93.11.54:8082/api/wallets/{{createMainWallet.response.body.address}}/balance
+
+###
+
+### 9.3 Obter credenciais da wallet (com senha mestra)
+# @name getWalletCredentials
+GET http://147.93.11.54:8082/api/wallets/{{createMainWallet.response.body.address}}/credentials/master
+Content-Type: application/json
+
+{
+  "masterPassword": "custody_master_password_2024"
+}
+
+###
+
+### ========================================
+### 10. TESTE DE INTEGRIDADE - VERIFICAÇÃO FINAL
+### ========================================
+
+### 10.1 Verificar saúde final
+# @name finalHealthCheck
+GET http://147.93.11.54:8082/actuator/health
+
+###
+
+### 10.2 Verificar status blockchain final
+# @name finalBlockchainStatus
+GET http://147.93.11.54:8082/api/blockchain/status
+
+###
+
+### 10.3 Verificar metadados finais da StatusList
+# @name finalStatusListMetadata
+GET http://147.93.11.54:8082/api/statuslist/teste-universitario-001/metadata
+
+###
+
+### ========================================
+### RESUMO DOS TESTES - VERIFICAÇÃO RÁPIDA
+### ========================================
+
+### R1. Verificar se sistema está funcionando
+GET http://147.93.11.54:8082/actuator/health
+
+###
+
+### R2. Verificar se blockchain está conectado
+GET http://147.93.11.54:8082/api/blockchain/status
+
+###
+
+### R3. Verificar se StatusList foi criada
+GET http://147.93.11.54:8082/api/statuslist/teste-universitario-001
+
+###
+
+### R4. Verificar se credencial foi emitida
+GET http://147.93.11.54:8082/api/credentials
+
+###
+
+### R5. Verificar se credencial foi revogada
+GET http://147.93.11.54:8082/api/credentials/status/REVOKED
+
+###
+
+### ========================================
+### NOTAS IMPORTANTES
+### ========================================
+
+### ✅ SEQUÊNCIA CORRETA:
+### 1. Health Check
+### 2. Criar Wallet
+### 3. Criar StatusList
+### 4. Emitir Credencial
+### 5. Verificar Credencial
+### 6. Revogar Credencial
+### 7. Verificar Revogação
+### 8. Consultas e Validações
+
+### 🔍 VERIFICAÇÕES:
+### - Todos os endpoints devem retornar 200/201
+### - StatusLists devem ter versão 1
+### - Credenciais devem ter status VALID -> REVOKED
+### - Metadados devem mostrar contagens corretas
+
+### 🚨 EM CASO DE ERRO:
+### - Verificar logs: docker compose logs custody-service
+### - Verificar se aplicação está rodando
+### - Verificar se banco H2 está acessível
+### - Verificar se blockchain está conectado
+
+### 🎯 RESULTADO ESPERADO:
+### Sistema completo funcionando com:
+### - Wallet criada e funcional
+### - StatusList criada e versionada
+### - Credencial emitida e verificável
+### - Credencial revogada e status atualizado
+### - Todas as consultas funcionando
