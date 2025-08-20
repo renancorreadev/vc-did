@@ -905,18 +905,187 @@
                     }
                 },
                 {
-                    "name": "Verificar Credencial Educacional",
+                    "name": "Verificar Credencial no Blockchain",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/api/credentials",
+                            "raw": "{{base_url}}/api/credentials/{{createCredential.response.body.credentialId}}/exists",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
                                 "api",
-                                "credentials"
+                                "credentials",
+                                "{{createCredential.response.body.credentialId}}",
+                                "exists"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Verificar Credencial no Sistema",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/credentials/{{createCredential.response.body.credentialId}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "credentials",
+                                "{{createCredential.response.body.credentialId}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Verificar Status de Revogação",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/credentials/{{createCredential.response.body.credentialId}}/revocation-status",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "credentials",
+                                "{{createCredential.response.body.credentialId}}",
+                                "revocation-status"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Verificar Credencial com JWT",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "text/plain"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{{createCredential.response.body.jwt}}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/credentials/verify",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "credentials",
+                                "verify"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Verificar StatusList Após Emissão",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/statuslist/educacao-ufrj-001/metadata",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "statuslist",
+                                "educacao-ufrj-001",
+                                "metadata"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Revogar Credencial",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/credentials/{{createCredential.response.body.credentialId}}/revoke",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "credentials",
+                                "{{createCredential.response.body.credentialId}}",
+                                "revoke"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Verificar Credencial Revogada",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "text/plain"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{{createCredential.response.body.jwt}}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/credentials/verify",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "credentials",
+                                "verify"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Verificar StatusList Após Revogação",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/statuslist/educacao-ufrj-001/metadata",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "statuslist",
+                                "educacao-ufrj-001",
+                                "metadata"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Verificar Status de Revogação Após Revogação",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/credentials/{{createCredential.response.body.credentialId}}/revocation-status",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "credentials",
+                                "{{createCredential.response.body.credentialId}}",
+                                "revocation-status"
                             ]
                         }
                     }
