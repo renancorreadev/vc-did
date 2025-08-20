@@ -12,6 +12,8 @@ public class CredentialRequest {
     private LocalDateTime expiresAt;
     private String statusListId;
     private String issuerWalletAddress;
+    // NOVO CAMPO
+    private String holderWalletAddress;
 
     // Construtores
     public CredentialRequest() {}
@@ -46,4 +48,6 @@ public class CredentialRequest {
 
     public String getIssuerWalletAddress() { return issuerWalletAddress; }
     public void setIssuerWalletAddress(String issuerWalletAddress) { this.issuerWalletAddress = issuerWalletAddress; }
+    public String getHolderWalletAddress() { return holderWalletAddress; }
+    public void setHolderWalletAddress(String holderWalletAddress) { this.holderWalletAddress = holderWalletAddress; }
 }

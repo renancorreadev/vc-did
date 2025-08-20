@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.ECKeyPair;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.utils.Numeric;
 
 import java.security.PrivateKey;
@@ -72,7 +73,42 @@ public class CredentialService {
         credential.setIssuerWalletAddress(request.getIssuerWalletAddress());
         credential.setExpiresAt(request.getExpiresAt());
 
-        // Salvar credencial
+        // Registrar credencial no blockchain ANTES de salvar no banco
+        try {
+            String credentialData = objectMapper.writeValueAsString(credentialPayload);
+            String credentialHash = calculateHash(credentialData);
+
+            // ✅ VALIDAR PARÂMETROS OBRIGATÓRIOS
+            if (request.getHolderWalletAddress() == null || request.getHolderWalletAddress().trim().isEmpty()) {
+                throw new RuntimeException("HolderWalletAddress é obrigatório para registrar credencial no blockchain");
+            }
+
+            System.out.println("Registrando credencial no blockchain: " + credentialId);
+            System.out.println("Subject: " + request.getHolderWalletAddress());
+            System.out.println("Hash: " + credentialHash);
+
+            // Aguardar confirmação da transação blockchain
+            TransactionReceipt receipt = blockchainService.issueCredential(
+                credentialId,
+                request.getHolderWalletAddress(),
+                credentialHash
+            ).get();
+
+            if (!receipt.isStatusOK()) {
+                // ✅ FALHAR A OPERAÇÃO SE BLOCKCHAIN FALHAR
+                throw new RuntimeException("Falha ao registrar credencial no contrato: " + credentialId +
+                                         " - TX: " + receipt.getTransactionHash() +
+                                         " - Status: " + receipt.getStatus());
+            } else {
+                System.out.println("✅ Credencial registrada no contrato: " + credentialId +
+                                 " - TX: " + receipt.getTransactionHash());
+            }
+        } catch (Exception e) {
+            System.err.println("❌ ERRO CRÍTICO ao registrar credencial no blockchain: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Falha crítica ao registrar credencial no blockchain. Credencial não será criada: " + e.getMessage(), e);
+        }
+
         Credential savedCredential = credentialRepository.save(credential);
 
         // Ancorar metadados no DIDRegistry (opcional, para did:ethr)
@@ -362,7 +398,17 @@ public class CredentialService {
         try {
             java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
             byte[] hashBytes = digest.digest(data.getBytes("UTF-8"));
-            return "0x" + org.web3j.utils.Numeric.toHexString(hashBytes);
+
+            // Garantir que sempre temos 32 bytes
+            if (hashBytes.length != 32) {
+                throw new RuntimeException("SHA-256 deve produzir exatamente 32 bytes, mas produziu: " + hashBytes.length);
+            }
+
+            // Converter para hex com prefixo 0x
+            String hexHash = "0x" + org.web3j.utils.Numeric.toHexStringNoPrefix(hashBytes);
+            System.out.println("[DEBUG] Hash calculado: " + hexHash + " (length: " + hexHash.length() + ")");
+
+            return hexHash;
         } catch (Exception e) {
             throw new RuntimeException("Erro ao calcular hash", e);
         }

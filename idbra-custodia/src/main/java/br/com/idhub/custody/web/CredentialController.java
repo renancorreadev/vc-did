@@ -2,13 +2,17 @@ package br.com.idhub.custody.web;
 
 import br.com.idhub.custody.domain.*;
 import br.com.idhub.custody.service.CredentialService;
+import br.com.idhub.custody.service.BlockchainService;
+import br.com.idhub.custody.repository.CredentialRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/credentials")
@@ -16,6 +20,12 @@ public class CredentialController {
 
     @Autowired
     private CredentialService credentialService;
+
+    @Autowired
+    private BlockchainService blockchainService;
+
+    @Autowired
+    private CredentialRepository credentialRepository;
 
     /**
      * Criar credencial verificável
@@ -216,6 +226,103 @@ public class CredentialController {
             return ResponseEntity.ok(statusLists);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Restaurar credencial revogada
+     */
+    @PostMapping("/{credentialId}/restore")
+    public ResponseEntity<Map<String, Object>> restoreCredential(
+            @PathVariable String credentialId,
+            @RequestParam String subject,
+            @RequestParam(required = false, defaultValue = "Credencial restaurada") String reason) {
+        try {
+            // Usar BlockchainService diretamente para restaurar na blockchain
+            CompletableFuture<TransactionReceipt> future = blockchainService.restoreCredential(credentialId, subject, reason);
+            TransactionReceipt receipt = future.get();
+
+            if (receipt.isStatusOK()) {
+                // Atualizar status local
+                Optional<Credential> credentialOpt = credentialService.getCredentialById(credentialId);
+                if (credentialOpt.isPresent()) {
+                    Credential credential = credentialOpt.get();
+                    credential.setStatus("ACTIVE");
+                    credentialRepository.save(credential);
+                }
+
+                Map<String, Object> response = Map.of(
+                    "success", true,
+                    "restored", true,
+                    "credentialId", credentialId,
+                    "subject", subject,
+                    "reason", reason,
+                    "transactionHash", receipt.getTransactionHash(),
+                    "timestamp", java.time.LocalDateTime.now().toString()
+                );
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", "Falha na transação blockchain"
+                ));
+            }
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = Map.of(
+                "success", false,
+                "error", "Erro ao restaurar credencial: " + e.getMessage(),
+                "credentialId", credentialId,
+                "timestamp", java.time.LocalDateTime.now().toString()
+            );
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
+    /**
+     * Verificar se credencial está revogada na blockchain
+     */
+    @GetMapping("/{credentialId}/revocation-status")
+    public ResponseEntity<Map<String, Object>> getCredentialRevocationStatus(@PathVariable String credentialId) {
+        try {
+            boolean isRevoked = blockchainService.isCredentialRevoked(credentialId);
+            Optional<RevocationRecord> revocationRecord = blockchainService.getCredentialRevocation(credentialId);
+
+            Map<String, Object> response = Map.of(
+                "credentialId", credentialId,
+                "isRevoked", isRevoked,
+                "revocationRecord", revocationRecord.orElse(null),
+                "timestamp", java.time.LocalDateTime.now().toString()
+            );
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Verificar se credencial existe na blockchain
+     */
+    @GetMapping("/{credentialId}/exists")
+    public ResponseEntity<Map<String, Object>> checkCredentialExists(@PathVariable String credentialId) {
+        try {
+            boolean exists = blockchainService.credentialExists(credentialId);
+
+            Map<String, Object> response = Map.of(
+                "credentialId", credentialId,
+                "exists", exists,
+                "message", exists ? "Credencial existe no blockchain" : "Credencial não encontrada no blockchain",
+                "timestamp", java.time.LocalDateTime.now().toString()
+            );
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = Map.of(
+                "credentialId", credentialId,
+                "exists", false,
+                "error", "Erro ao verificar existência da credencial: " + e.getMessage(),
+                "timestamp", java.time.LocalDateTime.now().toString()
+            );
+            return ResponseEntity.badRequest().body(error);
         }
     }
 }

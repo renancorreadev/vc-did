@@ -20,7 +20,7 @@ public interface StatusListRepository extends JpaRepository<StatusList, Long> {
 
     List<StatusList> findByIssuerWalletAddress(String issuerWalletAddress);
 
-    @Query("SELECT sl FROM StatusList sl WHERE sl.version = (SELECT MAX(sl2.version) FROM StatusList sl2 WHERE sl2.listId = :listId)")
+    @Query("SELECT sl FROM StatusList sl WHERE sl.listId = :listId AND sl.version = (SELECT MAX(sl2.version) FROM StatusList sl2 WHERE sl2.listId = :listId)")
     Optional<StatusList> findLatestVersionByListId(@Param("listId") String listId);
 
     @Query("SELECT sl FROM StatusList sl WHERE sl.listId = :listId ORDER BY sl.version DESC")

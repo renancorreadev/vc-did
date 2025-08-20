@@ -1,6 +1,7 @@
 package br.com.idhub.custody.web;
 
 import br.com.idhub.custody.service.BlockchainService;
+import br.com.idhub.custody.domain.SystemMetrics;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,8 +18,7 @@ public class BlockchainController {
     private BlockchainService blockchainService;
 
     // Endereços hardcoded temporariamente
-    private static final String DID_REGISTRY_ADDRESS = "0x8553c57aC9a666EAfC517Ffc4CF57e21d2D3a1cb";
-    private static final String STATUS_LIST_MANAGER_ADDRESS = "0x93a284C91768F3010D52cD37f84f22c5052be40b";
+    private static final String DID_REGISTRY_ADDRESS = "0x34c2AcC42882C0279A64bB1a4B1083D483BdE886";
 
     /**
      * Verificar se uma wallet tem ISSUER_ROLE em ambos os contratos
@@ -30,7 +30,6 @@ public class BlockchainController {
             Map<String, Object> response = Map.of(
                 "walletAddress", walletAddress,
                 "hasIssuerRole", hasRole,
-                "statusListManager", blockchainService.hasIssuerRoleForContract(walletAddress, blockchainService.getStatusListManagerAddress()),
                 "didRegistry", blockchainService.hasIssuerRoleForContract(walletAddress, blockchainService.getDidRegistryAddress()),
                 "timestamp", java.time.LocalDateTime.now().toString()
             );
@@ -80,8 +79,7 @@ public class BlockchainController {
                 "gasPrice", "0",
                 "mode", "LEGACY",
                 "contracts", Map.of(
-                    "didRegistry", DID_REGISTRY_ADDRESS,
-                    "statusListManager", STATUS_LIST_MANAGER_ADDRESS
+                    "didRegistry", DID_REGISTRY_ADDRESS
                 ),
                 "timestamp", java.time.LocalDateTime.now().toString()
             );
@@ -132,6 +130,130 @@ public class BlockchainController {
                 "timestamp", java.time.LocalDateTime.now().toString()
             );
             return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    /**
+     * Criar novo DID
+     */
+    @PostMapping("/did/create")
+    public ResponseEntity<Map<String, Object>> createDID(
+            @RequestParam String identity,
+            @RequestParam String didDocument) {
+        try {
+            CompletableFuture<TransactionReceipt> future = blockchainService.createDID(identity, didDocument);
+            TransactionReceipt receipt = future.get();
+
+            Map<String, Object> response = Map.of(
+                "success", receipt.isStatusOK(),
+                "identity", identity,
+                "transactionHash", receipt.getTransactionHash(),
+                "timestamp", java.time.LocalDateTime.now().toString()
+            );
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Verificar status KYC
+     */
+    @GetMapping("/kyc/{identity}")
+    public ResponseEntity<Map<String, Object>> getKYCStatus(@PathVariable String identity) {
+        try {
+            boolean kycStatus = blockchainService.getKYCStatus(identity);
+            Map<String, Object> response = Map.of(
+                "identity", identity,
+                "kycVerified", kycStatus,
+                "timestamp", java.time.LocalDateTime.now().toString()
+            );
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Definir status KYC
+     */
+    @PostMapping("/kyc/{identity}")
+    public ResponseEntity<Map<String, Object>> setKYCStatus(
+            @PathVariable String identity,
+            @RequestParam boolean verified) {
+        try {
+            CompletableFuture<TransactionReceipt> future = blockchainService.setKYCStatus(identity, verified);
+            TransactionReceipt receipt = future.get();
+
+            Map<String, Object> response = Map.of(
+                "success", receipt.isStatusOK(),
+                "identity", identity,
+                "kycVerified", verified,
+                "transactionHash", receipt.getTransactionHash(),
+                "timestamp", java.time.LocalDateTime.now().toString()
+            );
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Pausar contrato (apenas admin)
+     */
+    @PostMapping("/pause")
+    public ResponseEntity<Map<String, Object>> pauseContract() {
+        try {
+            CompletableFuture<TransactionReceipt> future = blockchainService.pause();
+            TransactionReceipt receipt = future.get();
+
+            Map<String, Object> response = Map.of(
+                "success", receipt.isStatusOK(),
+                "action", "pause",
+                "transactionHash", receipt.getTransactionHash(),
+                "timestamp", java.time.LocalDateTime.now().toString()
+            );
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Despausar contrato (apenas admin)
+     */
+    @PostMapping("/unpause")
+    public ResponseEntity<Map<String, Object>> unpauseContract() {
+        try {
+            CompletableFuture<TransactionReceipt> future = blockchainService.unpause();
+            TransactionReceipt receipt = future.get();
+
+            Map<String, Object> response = Map.of(
+                "success", receipt.isStatusOK(),
+                "action", "unpause",
+                "transactionHash", receipt.getTransactionHash(),
+                "timestamp", java.time.LocalDateTime.now().toString()
+            );
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Obter métricas do sistema
+     */
+    @GetMapping("/metrics")
+    public ResponseEntity<Map<String, Object>> getSystemMetrics() {
+        try {
+            SystemMetrics metrics = blockchainService.getSystemMetrics();
+            Map<String, Object> response = Map.of(
+                "metrics", metrics,
+                "timestamp", java.time.LocalDateTime.now().toString()
+            );
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }

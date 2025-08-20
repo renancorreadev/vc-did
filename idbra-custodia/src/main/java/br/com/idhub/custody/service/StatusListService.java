@@ -79,7 +79,7 @@ public class StatusListService {
     } catch (Exception e) {
         throw new RuntimeException("Erro ao publicar StatusList: " + e.getMessage(), e);
     }
-}
+                                 }
 
     /**
      * Atualizar StatusList existente
@@ -174,37 +174,39 @@ public class StatusListService {
         newStatusList.setStatusListData(statusListJson);
         System.out.println("[REVOKE] Nova StatusList criada - versão: " + newStatusList.getVersion());
 
-        // 1. Primeiro revogar o atributo no DIDRegistry
+        // 1. Primeiro revogar a credencial no DIDRegistry (CORREÇÃO)
         try {
-            System.out.println("[REVOKE] Iniciando revogação do atributo no DIDRegistry...");
+            System.out.println("[REVOKE] Iniciando revogação da credencial no DIDRegistry...");
             // Obter credencial associada a este índice na StatusList
             Optional<Credential> credentialOpt = credentialRepository.findByStatusListIdAndStatusListIndex(listId, statusListIndex);
             if (credentialOpt.isPresent()) {
                 Credential credential = credentialOpt.get();
                 String credentialId = credential.getCredentialId();
                 String issuerWalletAddress = latest.getIssuerWalletAddress();
-                System.out.println("[REVOKE] Credencial encontrada: " + credentialId + ", issuer: " + issuerWalletAddress);
+                String holderAddress = credential.getHolderDid().replace("did:ethr:", ""); // Extrair endereço do DID
+                System.out.println("[REVOKE] Credencial encontrada: " + credentialId + ", issuer: " + issuerWalletAddress + ", holder: " + holderAddress);
 
-                // Revogar atributo no DIDRegistry
-                TransactionReceipt receipt = blockchainService.revokeAttribute(
+                // CORREÇÃO: Usar revokeCredential em vez de revokeAttribute
+                TransactionReceipt receipt = blockchainService.revokeCredential(
                     issuerWalletAddress,
                     credentialId,
-                    hash
+                    holderAddress,
+                    "Credencial revogada via StatusList"
                 ).get(); // Aguardar confirmação
 
                 System.out.println("[REVOKE] Transação de revogação enviada - hash: " + receipt.getTransactionHash());
                 System.out.println("[REVOKE] Status da transação de revogação: " + receipt.isStatusOK());
 
                 if (!receipt.isStatusOK()) {
-                    throw new RuntimeException("Falha ao revogar atributo no DIDRegistry");
+                    throw new RuntimeException("Falha ao revogar credencial no DIDRegistry - Status: " + receipt.getStatus());
                 }
             } else {
                 System.out.println("[REVOKE] AVISO: Credencial não encontrada para listId: " + listId + ", index: " + statusListIndex);
             }
         } catch (Exception e) {
-            System.err.println("[REVOKE] ERRO ao revogar atributo no DIDRegistry: " + e.getMessage());
+            System.err.println("[REVOKE] ERRO ao revogar credencial no DIDRegistry: " + e.getMessage());
             e.printStackTrace();
-            throw new RuntimeException("Erro ao revogar atributo no DIDRegistry: " + e.getMessage(), e);
+            throw new RuntimeException("Erro ao revogar credencial no DIDRegistry: " + e.getMessage(), e);
         }
 
         // 2. Depois atualizar a StatusList na blockchain
@@ -377,3 +379,7 @@ public class StatusListService {
         }
     }
 }
+
+
+
+

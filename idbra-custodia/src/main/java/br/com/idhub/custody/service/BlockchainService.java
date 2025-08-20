@@ -2,6 +2,9 @@ package br.com.idhub.custody.service;
 
 import br.com.idhub.custody.domain.StatusList;
 import br.com.idhub.custody.domain.TransactionResult;
+import br.com.idhub.custody.domain.IdentityInfo;
+import br.com.idhub.custody.domain.RevocationRecord;
+import br.com.idhub.custody.domain.SystemMetrics;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -9,6 +12,8 @@ import org.web3j.crypto.Credentials;
 import org.web3j.crypto.RawTransaction;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.request.Transaction;
+import org.web3j.protocol.core.methods.response.EthCall;
 import org.web3j.protocol.core.methods.response.EthGetTransactionCount;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.utils.Numeric;
@@ -16,6 +21,7 @@ import org.web3j.utils.Numeric;
 import java.math.BigInteger;
 import java.util.concurrent.CompletableFuture;
 import java.util.Optional;
+import java.util.List;
 
 @Service
 public class BlockchainService {
@@ -29,22 +35,22 @@ public class BlockchainService {
     @Autowired
     private ContractService contractService;
 
-    // Endereços dos contratos
-    @Value("${blockchain.did-registry-address:0x8553c57aC9a666EAfC517Ffc4CF57e21d2D3a1cb}")
+    @Value("${blockchain.did-registry-address:0x34c2AcC42882C0279A64bB1a4B1083D483BdE886}")
     private String didRegistryAddress;
 
-    @Value("${blockchain.status-list-manager-address:0x93a284C91768F3010D52cD37f84f22c5052be40b}")
-    private String statusListManagerAddress;
+    // Remover esta linha completamente:
+    // @Value("${blockchain.status-list-manager-address:0x93a284C91768F3010D52cD37f84f22c5052be40b}")
+    // private String statusListManagerAddress;
 
     @Value("${web3j.chain-id:1337}")
     private Long chainId;
 
-    // Gas provider para zero gas (modo legacy)
+    // Gas configuration
     private final BigInteger gasPrice = BigInteger.ZERO;
     private final BigInteger gasLimit = BigInteger.valueOf(4_700_000);
 
     /**
-     * Publicar StatusList no StatusListManager
+     * Publish a new status list to the blockchain
      */
     public CompletableFuture<TransactionReceipt> publishStatusList(
             String listId,
@@ -55,48 +61,16 @@ public class BlockchainService {
             String purpose,
             String issuerWalletAddress) throws Exception {
 
-        System.out.println("\n=== BLOCKCHAIN SERVICE - PUBLISH START ===");
-        System.out.println("Parâmetros recebidos:");
-        System.out.println("  - listId: '" + listId + "'");
-        System.out.println("  - uri: '" + uri + "'");
-        System.out.println("  - hash: '" + hash + "'");
-        System.out.println("  - version: " + version);
-        System.out.println("  - size: " + size);
-        System.out.println("  - purpose: '" + purpose + "'");
-        System.out.println("  - issuerWalletAddress: '" + issuerWalletAddress + "'");
-        System.out.println("  - statusListManagerAddress: '" + statusListManagerAddress + "'");
-        System.out.println("  - chainId: " + chainId);
+        String functionData = contractService.publishStatusListFunctionData(
+                issuerWalletAddress, listId, uri, hash
+        );
 
-        // Obter credenciais administrativas em vez das credenciais do emissor
-        System.out.println("\n1. Obtendo credenciais administrativas...");
-        Credentials credentials;
-        try {
-            credentials = walletService.getAdminCredentials();
-            System.out.println("   Credenciais administrativas obtidas para address: " + credentials.getAddress());
-        } catch (Exception e) {
-            System.err.println("   ERRO ao obter credenciais administrativas: " + e.getMessage());
-            throw e;
-        }
-
-        // Usar ContractService para gerar dados corretos da função
-        System.out.println("\n2. Gerando dados da função...");
-        String functionData;
-        try {
-            functionData = contractService.createListFunctionData(listId, uri, hash, size, purpose);
-            System.out.println("   Dados da função gerados com sucesso");
-            System.out.println("   Tamanho dos dados: " + functionData.length() + " chars");
-            System.out.println("   Primeiros 100 chars: " + functionData.substring(0, Math.min(100, functionData.length())));
-        } catch (Exception e) {
-            System.err.println("   ERRO ao gerar dados da função: " + e.getMessage());
-            throw e;
-        }
-
-        System.out.println("\n3. Enviando transação...");
-        return sendTransaction(credentials, functionData, statusListManagerAddress);
+        Credentials credentials = walletService.getWalletCredentialsForBlockchain(issuerWalletAddress);
+        return sendTransaction(credentials, functionData, didRegistryAddress);
     }
 
     /**
-     * Atualizar StatusList existente
+     * Update an existing status list
      */
     public CompletableFuture<TransactionReceipt> updateStatusList(
             String listId,
@@ -105,44 +79,19 @@ public class BlockchainService {
             String newHash,
             String issuerWalletAddress) throws Exception {
 
-        System.out.println("\n=== BLOCKCHAIN SERVICE - UPDATE STATUS LIST START ===");
-        System.out.println("Parâmetros recebidos:");
-        System.out.println("  - listId: '" + listId + "'");
-        System.out.println("  - newVersion: " + newVersion);
-        System.out.println("  - newUri: '" + newUri + "'");
-        System.out.println("  - newHash: '" + newHash + "'");
-        System.out.println("  - issuerWalletAddress: '" + issuerWalletAddress + "'");
+        // Usar publishStatusListFunctionData em vez de createListFunctionData
+        String functionData = contractService.publishStatusListFunctionData(
+                issuerWalletAddress, listId, newUri, newHash
+        );
 
-        // Usar credenciais administrativas (mesmas usadas na criação da StatusList)
-        System.out.println("\n1. Obtendo credenciais administrativas...");
-        Credentials credentials;
-        try {
-            credentials = walletService.getAdminCredentials();
-            System.out.println("   Credenciais administrativas obtidas para address: " + credentials.getAddress());
-        } catch (Exception e) {
-            System.err.println("   ERRO ao obter credenciais administrativas: " + e.getMessage());
-            throw e;
-        }
-
-        // Usar ContractService para gerar dados corretos da função
-        System.out.println("\n2. Gerando dados da função publish...");
-        String functionData;
-        try {
-            functionData = contractService.publishFunctionData(listId, newVersion, newUri, newHash);
-            System.out.println("   Dados da função gerados com sucesso");
-            System.out.println("   Tamanho dos dados: " + functionData.length() + " chars");
-            System.out.println("   Primeiros 100 chars: " + functionData.substring(0, Math.min(100, functionData.length())));
-        } catch (Exception e) {
-            System.err.println("   ERRO ao gerar dados da função: " + e.getMessage());
-            throw e;
-        }
-
-        System.out.println("\n3. Enviando transação de atualização...");
-        return sendTransaction(credentials, functionData, statusListManagerAddress);
+        Credentials credentials = walletService.getWalletCredentialsForBlockchain(issuerWalletAddress);
+        return sendTransaction(credentials, functionData, didRegistryAddress);
     }
 
+
+
     /**
-     * Ancorar metadados de credencial no DIDRegistry
+     * Check if a wallet has issuer role - versão simplificada usando valor constante
      */
     public CompletableFuture<TransactionReceipt> anchorCredentialMetadata(
             String issuerWalletAddress,
@@ -150,412 +99,671 @@ public class BlockchainService {
             String metadataHash,
             Long validTo) throws Exception {
 
-        Credentials credentials = walletService.getWalletCredentialsForBlockchain(issuerWalletAddress);
-
-        // Usar ContractService para gerar dados corretos da função
         String functionData = contractService.setAttributeFunctionData(
-            issuerWalletAddress, credentialId, metadataHash, validTo
+                credentialId, "credentialMetadata", metadataHash, validTo
         );
 
+        Credentials credentials = walletService.getWalletCredentialsForBlockchain(issuerWalletAddress);
         return sendTransaction(credentials, functionData, didRegistryAddress);
     }
 
-    /**
-     * Verificar se uma wallet tem ISSUER_ROLE em ambos os contratos
-     */
-    public boolean hasIssuerRole(String walletAddress) {
-        try {
-            System.out.println("\n=== VERIFICANDO ISSUER_ROLE ===");
-            System.out.println("Wallet Address: " + walletAddress);
 
-            // Verificar no StatusListManager
-            System.out.println("Contract Address (StatusListManager): " + statusListManagerAddress);
-            boolean hasRoleInStatusList = hasIssuerRoleForContract(walletAddress, statusListManagerAddress);
-
-            // Verificar no DIDRegistry
-            System.out.println("Contract Address (DIDRegistry): " + didRegistryAddress);
-            boolean hasRoleInDIDRegistry = hasIssuerRoleForContract(walletAddress, didRegistryAddress);
-
-            // Retorna true apenas se tiver a role em ambos os contratos
-            return hasRoleInStatusList && hasRoleInDIDRegistry;
-
-        } catch (Exception e) {
-            System.out.println("Erro ao verificar ISSUER_ROLE: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
-    }
 
     /**
-     * Método auxiliar para verificar ISSUER_ROLE em um contrato específico
-     */
-    public boolean hasIssuerRoleForContract(String walletAddress, String contractAddress) {
-        try {
-            // Primeiro, obter o valor da constante ISSUER_ROLE do contrato
-            String issuerRoleData = contractService.getIssuerRoleFunctionData();
-            System.out.println("ISSUER_ROLE function data: " + issuerRoleData);
-
-            // Fazer chamada para obter o valor de ISSUER_ROLE
-            org.web3j.protocol.core.methods.request.Transaction issuerRoleTransaction =
-                org.web3j.protocol.core.methods.request.Transaction.createEthCallTransaction(
-                    null, contractAddress, issuerRoleData);
-
-            org.web3j.protocol.core.methods.response.EthCall issuerRoleResponse =
-                web3j.ethCall(issuerRoleTransaction, DefaultBlockParameterName.LATEST).send();
-
-            if (issuerRoleResponse.hasError()) {
-                System.out.println("Erro ao obter ISSUER_ROLE: " + issuerRoleResponse.getError().getMessage());
-                return false;
-            }
-
-            String issuerRoleValue = issuerRoleResponse.getValue();
-            System.out.println("ISSUER_ROLE value: " + issuerRoleValue);
-
-            // Verificar se o valor retornado é válido
-            if (issuerRoleValue == null || issuerRoleValue.equals("0x")) {
-                System.out.println("Valor ISSUER_ROLE inválido ou vazio");
-                return false;
-            }
-
-            // Agora verificar se a wallet tem essa role usando hasRole
-            String hasRoleData = contractService.getHasRoleFunctionData(issuerRoleValue, walletAddress);
-            System.out.println("hasRole function data: " + hasRoleData);
-
-            // Fazer chamada para hasRole
-            org.web3j.protocol.core.methods.request.Transaction hasRoleTransaction =
-                org.web3j.protocol.core.methods.request.Transaction.createEthCallTransaction(
-                    null, contractAddress, hasRoleData);
-
-            org.web3j.protocol.core.methods.response.EthCall hasRoleResponse =
-                web3j.ethCall(hasRoleTransaction, DefaultBlockParameterName.LATEST).send();
-
-            if (hasRoleResponse.hasError()) {
-                System.out.println("Erro ao verificar hasRole: " + hasRoleResponse.getError().getMessage());
-                return false;
-            }
-
-            String hasRoleResult = hasRoleResponse.getValue();
-            System.out.println("hasRole result: " + hasRoleResult);
-
-            // Verificar se o resultado é válido
-            if (hasRoleResult == null || hasRoleResult.equals("0x")) {
-                System.out.println("Resultado hasRole inválido");
-                return false;
-            }
-
-            // Decodificar o resultado boolean
-            boolean hasRole = !"0x0000000000000000000000000000000000000000000000000000000000000000".equals(hasRoleResult) &&
-                             hasRoleResult.endsWith("1");
-
-            System.out.println("Wallet tem ISSUER_ROLE no contrato " + contractAddress + ": " + hasRole);
-            return hasRole;
-
-        } catch (Exception e) {
-            System.out.println("Erro ao verificar ISSUER_ROLE no contrato " + contractAddress + ": " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    /**
-     * Verificar se uma wallet tem DEFAULT_ADMIN_ROLE
+     * Check if a wallet has default admin role
      */
     public boolean hasDefaultAdminRole(String walletAddress) {
         try {
-            System.out.println("\n=== VERIFICANDO DEFAULT_ADMIN_ROLE ===");
-            System.out.println("Wallet Address: " + walletAddress);
-            System.out.println("Contract Address: " + statusListManagerAddress);
+            // TODO: Criar método específico no ContractService para DEFAULT_ADMIN_ROLE
+            // O método atual getHasRoleFunctionData usa ISSUER_ROLE_HASH constante
+            // Temporariamente retornando false até implementarmos o método correto
+            return false;
 
-            // DEFAULT_ADMIN_ROLE é sempre 0x00 (32 bytes de zeros)
-            String defaultAdminRoleValue = "0x0000000000000000000000000000000000000000000000000000000000000000";
-            System.out.println("DEFAULT_ADMIN_ROLE value: " + defaultAdminRoleValue);
+            /*
+            String functionData = contractService.getHasRoleFunctionData(
+                "0x0000000000000000000000000000000000000000000000000000000000000000", // DEFAULT_ADMIN_ROLE
+                walletAddress
+            );
 
-            // Verificar se a wallet tem DEFAULT_ADMIN_ROLE usando hasRole
-            String hasRoleData = contractService.getHasRoleFunctionData(defaultAdminRoleValue, walletAddress);
-            System.out.println("hasRole function data: " + hasRoleData);
+            EthCall response = web3j.ethCall(
+                Transaction.createEthCallTransaction(null, didRegistryAddress, functionData),
+                DefaultBlockParameterName.LATEST
+            ).send();
 
-            // Fazer chamada para hasRole
-            org.web3j.protocol.core.methods.request.Transaction hasRoleTransaction =
-                org.web3j.protocol.core.methods.request.Transaction.createEthCallTransaction(
-                    null, statusListManagerAddress, hasRoleData);
-
-            org.web3j.protocol.core.methods.response.EthCall hasRoleResponse =
-                web3j.ethCall(hasRoleTransaction, DefaultBlockParameterName.LATEST).send();
-
-            if (hasRoleResponse.hasError()) {
-                System.out.println("Erro ao verificar hasRole: " + hasRoleResponse.getError().getMessage());
+            if (response.hasError()) {
+                System.out.println("Error checking admin role: " + response.getError().getMessage());
                 return false;
             }
-
-            String hasRoleResult = hasRoleResponse.getValue();
-            System.out.println("hasRole result: " + hasRoleResult);
-
-            // Verificar se o resultado é válido
-            if (hasRoleResult == null || hasRoleResult.equals("0x")) {
-                System.out.println("Resultado hasRole inválido");
-                return false;
-            }
-
-            // Decodificar o resultado boolean
-            // Em Solidity, um boolean true é representado como 0x0000...0001 (32 bytes)
-            // e false como 0x0000...0000 (32 bytes)
-            boolean hasRole = !"0x0000000000000000000000000000000000000000000000000000000000000000".equals(hasRoleResult) &&
-                             hasRoleResult.endsWith("1");
-
-            System.out.println("Wallet tem DEFAULT_ADMIN_ROLE: " + hasRole);
-            return hasRole;
+            */
 
         } catch (Exception e) {
-            System.out.println("Erro ao verificar DEFAULT_ADMIN_ROLE: " + e.getMessage());
-            e.printStackTrace();
-            return false;
+            throw new RuntimeException("Erro ao verificar default admin role: " + e.getMessage(), e);
         }
     }
-    // Método para enviar transação
+
+    /**
+     * Send a transaction to the blockchain
+     */
     private CompletableFuture<TransactionReceipt> sendTransaction(
             Credentials credentials, String functionData, String contractAddress) throws Exception {
 
-        System.out.println("\n=== SEND TRANSACTION - START ===");
-        System.out.println("Parâmetros:");
-        System.out.println("  - from: " + credentials.getAddress());
-        System.out.println("  - to: " + contractAddress);
-        System.out.println("  - chainId: " + chainId);
-        System.out.println("  - gasPrice: " + gasPrice);
-        System.out.println("  - gasLimit: " + gasLimit);
-        System.out.println("  - functionData length: " + functionData.length());
-
-        // Obter nonce
-        System.out.println("\n1. Obtendo nonce...");
         EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(
-            credentials.getAddress(), DefaultBlockParameterName.LATEST).send();
+                credentials.getAddress(), DefaultBlockParameterName.LATEST).send();
         BigInteger nonce = ethGetTransactionCount.getTransactionCount();
-        System.out.println("   Nonce obtido: " + nonce);
 
-        // Criar transação raw (modo legacy, zero gas)
-        System.out.println("\n2. Criando transação raw...");
         RawTransaction rawTransaction = RawTransaction.createTransaction(
-            nonce,
-            gasPrice,  // gasPrice = 0
-            gasLimit,  // gasLimit = 4.7M
-            contractAddress,  // to (endereço do contrato)
-            BigInteger.ZERO,  // value
-            functionData
+                nonce,
+                gasPrice,
+                gasLimit,
+                contractAddress,
+                functionData
         );
-        System.out.println("   Transação raw criada");
 
-        // Assinar transação
-        System.out.println("\n3. Assinando transação...");
         byte[] signedMessage = org.web3j.crypto.TransactionEncoder.signMessage(rawTransaction, chainId, credentials);
         String hexValue = Numeric.toHexString(signedMessage);
-        System.out.println("   Transação assinada");
-        System.out.println("   Hex length: " + hexValue.length());
-        System.out.println("   Hex (primeiros 100 chars): " + hexValue.substring(0, Math.min(100, hexValue.length())));
 
-        // Enviar transação
-        System.out.println("\n4. Enviando transação...");
-        return web3j.ethSendRawTransaction(hexValue).sendAsync()
-            .thenCompose(response -> {
-                if (response.hasError()) {
-                    throw new RuntimeException("Erro na transação: " + response.getError().getMessage());
-                }
-                String txHash = response.getTransactionHash();
-                return waitForTransactionReceipt(txHash, 30, 2000);
-            });
+        org.web3j.protocol.core.methods.response.EthSendTransaction ethSendTransaction =
+                web3j.ethSendRawTransaction(hexValue).send();
+
+        if (ethSendTransaction.hasError()) {
+            throw new RuntimeException("Transaction failed: " + ethSendTransaction.getError().getMessage());
+        }
+
+        String txHash = ethSendTransaction.getTransactionHash();
+        System.out.println("Transaction sent with hash: " + txHash);
+
+        return waitForTransactionReceipt(txHash, 30, 2000);
     }
 
-
     /**
-     * Conceder ISSUER_ROLE para uma wallet (usando chave administrativa configurada)
+     * Grant issuer role to a wallet
      */
     public CompletableFuture<TransactionReceipt> grantIssuerRole(String targetWalletAddress) throws Exception {
         try {
-            System.out.println("\n=== CONCEDENDO ISSUER_ROLE ===");
-            System.out.println("Target Wallet: " + targetWalletAddress);
+            Credentials adminCredentials = walletService.getAdminCredentials();
 
-            // Conceder role no StatusListManager
-            System.out.println("Contract Address (StatusListManager): " + statusListManagerAddress);
-            CompletableFuture<TransactionReceipt> statusListManagerFuture = grantIssuerRoleForContract(targetWalletAddress, statusListManagerAddress);
+            // Usar diretamente o método com ISSUER_ROLE_HASH constante
+            String functionData = contractService.getGrantRoleFunctionData(targetWalletAddress);
 
-            // Aguardar a primeira transação ser confirmada
-            TransactionReceipt statusListReceipt = statusListManagerFuture.get();
-            if (!statusListReceipt.isStatusOK()) {
-                throw new RuntimeException("Falha ao conceder ISSUER_ROLE no StatusListManager. Status: " + statusListReceipt.getStatus());
-            }
-
-            // Conceder role no DIDRegistry
-            System.out.println("Contract Address (DIDRegistry): " + didRegistryAddress);
-            CompletableFuture<TransactionReceipt> didRegistryFuture = grantIssuerRoleForContract(targetWalletAddress, didRegistryAddress);
-
-            // Aguardar a segunda transação
-            return didRegistryFuture;
+            return sendTransaction(adminCredentials, functionData, didRegistryAddress);
         } catch (Exception e) {
-            System.out.println("Erro ao conceder ISSUER_ROLE: " + e.getMessage());
-            e.printStackTrace();
-            throw e;
+            throw new RuntimeException("Erro ao conceder ISSUER_ROLE: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Método auxiliar para conceder ISSUER_ROLE em um contrato específico
+     * Grant issuer role for a specific contract
      */
     private CompletableFuture<TransactionReceipt> grantIssuerRoleForContract(String targetWalletAddress, String contractAddress) throws Exception {
-        // Primeiro, obter o valor da constante ISSUER_ROLE do contrato
-        String issuerRoleData = contractService.getIssuerRoleFunctionData();
+        try {
+            Credentials adminCredentials = walletService.getAdminCredentials();
 
-        // Fazer chamada para obter o valor de ISSUER_ROLE
-        org.web3j.protocol.core.methods.request.Transaction issuerRoleTransaction =
-            org.web3j.protocol.core.methods.request.Transaction.createEthCallTransaction(
-                null, contractAddress, issuerRoleData);
+            // Usar diretamente o método com ISSUER_ROLE_HASH constante
+            String functionData = contractService.getGrantRoleFunctionData(targetWalletAddress);
 
-        org.web3j.protocol.core.methods.response.EthCall issuerRoleResponse =
-            web3j.ethCall(issuerRoleTransaction, DefaultBlockParameterName.LATEST).send();
-
-        if (issuerRoleResponse.hasError()) {
-            throw new RuntimeException("Erro ao obter ISSUER_ROLE: " + issuerRoleResponse.getError().getMessage());
+            return sendTransaction(adminCredentials, functionData, contractAddress);
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao conceder ISSUER_ROLE para contrato " + contractAddress + ": " + e.getMessage(), e);
         }
-
-        String issuerRoleValue = issuerRoleResponse.getValue();
-        System.out.println("ISSUER_ROLE value: " + issuerRoleValue);
-
-        // Verificar se o valor retornado é válido
-        if (issuerRoleValue == null || issuerRoleValue.equals("0x")) {
-            throw new RuntimeException("Valor ISSUER_ROLE inválido ou vazio");
-        }
-
-        // Gerar dados da função grantRole
-        String grantRoleData = contractService.getGrantRoleFunctionData(issuerRoleValue, targetWalletAddress);
-        System.out.println("grantRole function data: " + grantRoleData);
-
-        // Obter credenciais administrativas
-        Credentials adminCredentials = walletService.getAdminCredentials();
-        System.out.println("Admin Address: " + adminCredentials.getAddress());
-
-        // Enviar transação
-        return sendTransaction(adminCredentials, grantRoleData, contractAddress);
     }
 
     /**
-     * Conceder ISSUER_ROLE para uma wallet (método legado com adminWalletAddress)
+     * Grant issuer role with specific admin wallet
      */
     public CompletableFuture<TransactionReceipt> grantIssuerRole(String targetWalletAddress, String adminWalletAddress) throws Exception {
-        // Usar o novo método que utiliza a chave administrativa configurada
-        return grantIssuerRole(targetWalletAddress);
+        return grantIssuerRoleForContract(targetWalletAddress, didRegistryAddress);
     }
+
     /**
-     * Aguardar receipt da transação com retry
+     * Wait for transaction receipt
      */
     private CompletableFuture<TransactionReceipt> waitForTransactionReceipt(String txHash, int maxAttempts, long intervalMs) {
         return CompletableFuture.supplyAsync(() -> {
-            System.out.println("\n=== AGUARDANDO RECEIPT ===");
-            System.out.println("TX Hash: " + txHash);
-
-            for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            for (int i = 0; i < maxAttempts; i++) {
                 try {
-                    System.out.println("\nTentativa " + attempt + "/" + maxAttempts + "...");
+                    Thread.sleep(intervalMs);
 
-                    Optional<TransactionReceipt> receiptResponse = web3j
-                        .ethGetTransactionReceipt(txHash)
-                        .send()
-                        .getTransactionReceipt();
+                    Optional<TransactionReceipt> receipt = web3j.ethGetTransactionReceipt(txHash)
+                            .send()
+                            .getTransactionReceipt();
 
-                    if (receiptResponse.isPresent()) {
-                        TransactionReceipt receipt = receiptResponse.get();
-                        System.out.println("\n=== RECEIPT ENCONTRADO ===");
-                        System.out.println("  - TX Hash: " + receipt.getTransactionHash());
-                        System.out.println("  - Block Number: " + receipt.getBlockNumber());
-                        System.out.println("  - Gas Used: " + receipt.getGasUsed());
-                        System.out.println("  - Status: " + receipt.getStatus());
-                        System.out.println("  - Contract Address: " + receipt.getContractAddress());
-
-                        // VERIFICAR STATUS DA TRANSAÇÃO
-                        if ("0x0".equals(receipt.getStatus())) {
-                            System.err.println("\n❌ TRANSAÇÃO FALHOU!");
-                            System.err.println("Status: " + receipt.getStatus());
-                            System.err.println("Gas Used: " + receipt.getGasUsed());
-
-                            // Tentar obter mais detalhes do erro
-                            String errorReason = "Transação falhou na execução";
-                            try {
-                                // Verificar logs de eventos para mais detalhes
-                                if (receipt.getLogs() != null && !receipt.getLogs().isEmpty()) {
-                                    System.err.println("Logs da transação:");
-                                    receipt.getLogs().forEach(log -> {
-                                        System.err.println("  - Address: " + log.getAddress());
-                                        System.err.println("  - Topics: " + log.getTopics());
-                                        System.err.println("  - Data: " + log.getData());
-                                    });
-                                } else {
-                                    System.err.println("Nenhum log encontrado na transação falhada");
-                                }
-                            } catch (Exception e) {
-                                System.err.println("Erro ao analisar logs: " + e.getMessage());
-                            }
-
-                            throw new RuntimeException("Transação falhou na blockchain. TX: " + txHash +
-                                                         ". Status: " + receipt.getStatus() +
-                                                         ". Gas usado: " + receipt.getGasUsed() +
-                                                         ". Motivo: " + errorReason);
-                        }
-
-                        System.out.println("✅ Transação executada com sucesso!");
-                        return receipt;
-                    } else {
-                        System.out.println("   Receipt ainda não disponível...");
-                    }
-
-                    if (attempt < maxAttempts) {
-                        Thread.sleep(intervalMs);
+                    if (receipt.isPresent()) {
+                        TransactionReceipt txReceipt = receipt.get();
+                        System.out.println("Transaction confirmed: " + txHash);
+                        System.out.println("Gas used: " + txReceipt.getGasUsed());
+                        System.out.println("Status: " + txReceipt.getStatus());
+                        return txReceipt;
                     }
 
                 } catch (Exception e) {
-                    System.err.println("   Erro na tentativa " + attempt + ": " + e.getMessage());
-                    if (attempt == maxAttempts) {
-                        throw new RuntimeException("Erro ao obter receipt para TX: " + txHash, e);
-                    }
-
-                    try {
-                        Thread.sleep(intervalMs);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException("Interrompido aguardando receipt", ie);
-                    }
+                    System.out.println("Error waiting for receipt (attempt " + (i + 1) + "): " + e.getMessage());
                 }
             }
 
-            throw new RuntimeException("Receipt não encontrado para TX: " + txHash);
+            throw new RuntimeException("Transaction receipt not received after " + maxAttempts + " attempts");
         });
     }
 
-        /**
-     * Retorna o endereço do contrato StatusListManager
+    /**
+     * Get status list manager address
      */
-    public String getStatusListManagerAddress() {
-        return statusListManagerAddress;
-    }
+    // Remover este método completamente:
+    // public String getStatusListManagerAddress() {
+    //     return statusListManagerAddress;
+    // }
 
     /**
-     * Retorna o endereço do contrato DIDRegistry
+     * Get DID registry address
      */
     public String getDidRegistryAddress() {
         return didRegistryAddress;
     }
 
     /**
-     * Revogar atributo no DIDRegistry
+     * Revoke an attribute from the DID registry
      */
     public CompletableFuture<TransactionReceipt> revokeAttribute(
             String issuerWalletAddress,
             String credentialId,
             String metadataHash) throws Exception {
 
-        Credentials credentials = walletService.getWalletCredentialsForBlockchain(issuerWalletAddress);
-
-        // Usar ContractService para gerar dados corretos da função
         String functionData = contractService.revokeAttributeFunctionData(
-            issuerWalletAddress, credentialId, metadataHash
+                credentialId, "credentialMetadata", metadataHash
         );
 
+
+        Credentials credentials = walletService.getAdminCredentials();
         return sendTransaction(credentials, functionData, didRegistryAddress);
+    }
+
+    // ===== DID MANAGEMENT FUNCTIONS =====
+
+    /**
+     * Create a new DID with owner and document
+     */
+    public CompletableFuture<TransactionReceipt> createDID(
+            String identity,
+            String didDocument) throws Exception {
+
+        String functionData = contractService.createDIDFunctionData(identity, didDocument);
+        Credentials credentials = walletService.getAdminCredentials();
+        return sendTransaction(credentials, functionData, didRegistryAddress);
+    }
+
+    /**
+     * Update DID document
+     */
+    public CompletableFuture<TransactionReceipt> updateDIDDocument(
+            String identity,
+            String newDidDocument) throws Exception {
+
+        String functionData = contractService.updateDIDDocumentFunctionData(identity, newDidDocument);
+        Credentials credentials = walletService.getAdminCredentials();
+        return sendTransaction(credentials, functionData, didRegistryAddress);
+    }
+
+    /**
+     * Set KYC status for an identity
+     */
+    public CompletableFuture<TransactionReceipt> setKYCStatus(
+            String identity,
+            boolean verified) throws Exception {
+
+        String functionData = contractService.setKYCStatusFunctionData(identity, verified);
+        Credentials credentials = walletService.getAdminCredentials();
+        return sendTransaction(credentials, functionData, didRegistryAddress);
+    }
+
+    /**
+     * Check if DID exists
+     */
+    public boolean didExists(String identity) {
+        try {
+            String functionData = contractService.didExistsFunctionData(identity);
+
+            EthCall response = web3j.ethCall(
+                Transaction.createEthCallTransaction(null, didRegistryAddress, functionData),
+                DefaultBlockParameterName.LATEST
+            ).send();
+
+            if (response.hasError()) {
+                System.out.println("Error checking DID existence: " + response.getError().getMessage());
+                return false;
+            }
+
+            String result = response.getValue();
+            return !"0x0000000000000000000000000000000000000000000000000000000000000000".equals(result) &&
+                   result.endsWith("1");
+
+        } catch (Exception e) {
+            System.out.println("Error checking DID existence: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get identity information
+     */
+    public Optional<IdentityInfo> getIdentityInfo(String identity) {
+        try {
+            String functionData = contractService.getIdentityInfoFunctionData(identity);
+
+            EthCall response = web3j.ethCall(
+                Transaction.createEthCallTransaction(null, didRegistryAddress, functionData),
+                DefaultBlockParameterName.LATEST
+            ).send();
+
+            if (response.hasError()) {
+                System.out.println("Error getting identity info: " + response.getError().getMessage());
+                return Optional.empty();
+            }
+
+            // Decode response and create IdentityInfo object
+            String result = response.getValue();
+            // TODO: Implement proper decoding based on contract structure
+
+            return Optional.of(new IdentityInfo());
+
+        } catch (Exception e) {
+            System.out.println("Error getting identity info: " + e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    // ===== CREDENTIAL MANAGEMENT FUNCTIONS =====
+
+    /**
+     * Issue a verifiable credential
+     */
+    public CompletableFuture<TransactionReceipt> issueCredential(
+            String credentialId,
+            String subject,
+            String credentialHash) throws Exception {
+
+        String functionData = contractService.issueCredentialFunctionData(
+                credentialId, subject, credentialHash
+        );
+
+        Credentials credentials = walletService.getAdminCredentials();
+        return sendTransaction(credentials, functionData, didRegistryAddress);
+    }
+
+    /**
+     * Revoke a verifiable credential
+     */
+    public CompletableFuture<TransactionReceipt> revokeCredential(
+            String issuerWalletAddress,
+            String credentialId,
+            String subject,
+            String reason) throws Exception {
+
+        String functionData = contractService.revokeCredentialFunctionData(
+                credentialId, subject, reason
+        );
+
+        Credentials credentials = walletService.getWalletCredentialsForBlockchain(issuerWalletAddress);
+        return sendTransaction(credentials, functionData, didRegistryAddress);
+    }
+
+    /**
+     * Restore a verifiable credential
+     */
+    public CompletableFuture<TransactionReceipt> restoreCredential(
+            String credentialId,
+            String subject,
+            String reason) throws Exception {
+
+        String functionData = contractService.restoreCredentialFunctionData(
+                credentialId, subject, reason
+        );
+
+        Credentials credentials = walletService.getAdminCredentials();
+        return sendTransaction(credentials, functionData, didRegistryAddress);
+    }
+
+    // ===== DELEGATE MANAGEMENT FUNCTIONS =====
+
+    /**
+     * Add a delegate to an identity
+     */
+    public CompletableFuture<TransactionReceipt> addDelegate(
+            String identity,
+            String delegateType,
+            String delegate,
+            Long validity) throws Exception {
+
+        String functionData = contractService.addDelegateFunctionData(
+                identity, delegateType, delegate, validity
+        );
+
+        Credentials credentials = walletService.getAdminCredentials();
+        return sendTransaction(credentials, functionData, didRegistryAddress);
+    }
+
+    /**
+     * Revoke a delegate from an identity
+     */
+    public CompletableFuture<TransactionReceipt> revokeDelegate(
+            String identity,
+            String delegateType,
+            String delegate) throws Exception {
+
+        String functionData = contractService.revokeDelegateFunctionData(
+                identity, delegateType, delegate
+        );
+
+        Credentials credentials = walletService.getAdminCredentials();
+        return sendTransaction(credentials, functionData, didRegistryAddress);
+    }
+
+    /**
+     * Check if delegate is valid
+     */
+    public boolean isValidDelegate(String identity, String delegateType, String delegate) {
+        try {
+            String functionData = contractService.isValidDelegateFunctionData(
+                    identity, delegateType, delegate
+            );
+
+            EthCall response = web3j.ethCall(
+                Transaction.createEthCallTransaction(null, didRegistryAddress, functionData),
+                DefaultBlockParameterName.LATEST
+            ).send();
+
+            if (response.hasError()) {
+                System.out.println("Error checking delegate validity: " + response.getError().getMessage());
+                return false;
+            }
+
+            String result = response.getValue();
+            return !"0x0000000000000000000000000000000000000000000000000000000000000000".equals(result) &&
+                   result.endsWith("1");
+
+        } catch (Exception e) {
+            System.out.println("Error checking delegate validity: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ===== SYSTEM METRICS FUNCTIONS =====
+
+    /**
+     * Check if credential is revoked
+     */
+    public boolean isCredentialRevoked(String credentialId) {
+        try {
+            String functionData = contractService.isCredentialRevokedFunctionData(credentialId);
+
+            EthCall response = web3j.ethCall(
+                Transaction.createEthCallTransaction(null, didRegistryAddress, functionData),
+                DefaultBlockParameterName.LATEST
+            ).send();
+
+            if (response.hasError()) {
+                System.out.println("Error checking credential revocation: " + response.getError().getMessage());
+                return false;
+            }
+
+            String result = response.getValue();
+            return !"0x0000000000000000000000000000000000000000000000000000000000000000".equals(result) &&
+                   result.endsWith("1");
+
+        } catch (Exception e) {
+            System.out.println("Error checking credential revocation: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get credential revocation record
+     */
+    public Optional<RevocationRecord> getCredentialRevocation(String credentialId) {
+        try {
+            String functionData = contractService.getCredentialRevocationFunctionData(credentialId);
+
+            EthCall response = web3j.ethCall(
+                Transaction.createEthCallTransaction(null, didRegistryAddress, functionData),
+                DefaultBlockParameterName.LATEST
+            ).send();
+
+            if (response.hasError()) {
+                System.out.println("Error getting credential revocation: " + response.getError().getMessage());
+                return Optional.empty();
+            }
+
+            String result = response.getValue();
+            // Check if result is empty (all zeros)
+            if ("0x0000000000000000000000000000000000000000000000000000000000000000".equals(result) ||
+                result.length() <= 66) {
+                return Optional.empty();
+            }
+
+            // Decode the tuple response
+            try {
+                // Remove 0x prefix
+                String hexData = result.substring(2);
+
+                // Parse the tuple structure
+                // First 32 bytes (64 hex chars) - offset to tuple data
+                // Next 32 bytes - bool revoked (1 byte, padded to 32)
+                // Next 32 bytes - uint256 timestamp
+                // Next 32 bytes - address revoker (20 bytes, padded to 32)
+                // Next 32 bytes - offset to string reason
+                // Next 32 bytes - bytes32 credentialHash
+                // Then the actual string data
+
+                // Skip the first offset (64 chars)
+                String dataSection = hexData.substring(64);
+
+                // Parse revoked (bool) - next 64 chars, take last 2
+                boolean revoked = !dataSection.substring(62, 64).equals("00");
+
+                // Parse timestamp (uint256) - next 64 chars
+                String timestampHex = dataSection.substring(64, 128);
+                BigInteger timestamp = new BigInteger(timestampHex, 16);
+
+                // Parse revoker address - next 64 chars, take last 40
+                String revokerHex = dataSection.substring(128 + 24, 192);
+                String revoker = "0x" + revokerHex;
+
+                // Parse reason string offset - next 64 chars
+                String reasonOffsetHex = dataSection.substring(192, 256);
+                int reasonOffset = new BigInteger(reasonOffsetHex, 16).intValue();
+
+                // Parse credentialHash - next 64 chars
+                String credentialHashHex = dataSection.substring(256, 320);
+
+                // Parse reason string
+                String reason = "";
+                if (reasonOffset > 0) {
+                    // Reason starts at offset * 2 (hex chars)
+                    int reasonStart = reasonOffset * 2;
+                    if (reasonStart < hexData.length()) {
+                        // First 32 bytes at reason location is the length
+                        String reasonLengthHex = hexData.substring(reasonStart, reasonStart + 64);
+                        int reasonLength = new BigInteger(reasonLengthHex, 16).intValue();
+
+                        if (reasonLength > 0 && reasonStart + 64 + (reasonLength * 2) <= hexData.length()) {
+                            String reasonHex = hexData.substring(reasonStart + 64, reasonStart + 64 + (reasonLength * 2));
+                            reason = new String(Numeric.hexStringToByteArray(reasonHex));
+                        }
+                    }
+                }
+
+                // Create RevocationRecord with decoded data
+                RevocationRecord record = new RevocationRecord();
+                record.setCredentialId(credentialId);
+                record.setRevoked(revoked);
+                record.setRevoker(revoker);
+                record.setRevokedAt(timestamp);
+                record.setReason(reason);
+
+                return Optional.of(record);
+
+            } catch (Exception decodeError) {
+                System.out.println("Error decoding revocation data: " + decodeError.getMessage());
+                decodeError.printStackTrace();
+                return Optional.empty();
+            }
+
+        } catch (Exception e) {
+            System.out.println("Error getting credential revocation: " + e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Get KYC status for an identity
+     */
+    public boolean getKYCStatus(String identity) {
+        try {
+            String functionData = contractService.getKYCStatusFunctionData(identity);
+
+            EthCall response = web3j.ethCall(
+                Transaction.createEthCallTransaction(null, didRegistryAddress, functionData),
+                DefaultBlockParameterName.LATEST
+            ).send();
+
+            if (response.hasError()) {
+                System.out.println("Error getting KYC status: " + response.getError().getMessage());
+                return false;
+            }
+
+            String result = response.getValue();
+            return !"0x0000000000000000000000000000000000000000000000000000000000000000".equals(result) &&
+                   result.endsWith("1");
+
+        } catch (Exception e) {
+            System.out.println("Error getting KYC status: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Pause the contract (admin function)
+     */
+    public CompletableFuture<TransactionReceipt> pause() throws Exception {
+        String functionData = contractService.pauseFunctionData();
+        Credentials credentials = walletService.getAdminCredentials();
+        return sendTransaction(credentials, functionData, didRegistryAddress);
+    }
+
+    /**
+     * Unpause the contract (admin function)
+     */
+    public CompletableFuture<TransactionReceipt> unpause() throws Exception {
+        String functionData = contractService.unpauseFunctionData();
+        Credentials credentials = walletService.getAdminCredentials();
+        return sendTransaction(credentials, functionData, didRegistryAddress);
+    }
+
+    /**
+     * Get system metrics
+     */
+    public SystemMetrics getSystemMetrics() {
+        try {
+            String functionData = contractService.getSystemMetricsFunctionData();
+
+            EthCall response = web3j.ethCall(
+                Transaction.createEthCallTransaction(null, didRegistryAddress, functionData),
+                DefaultBlockParameterName.LATEST
+            ).send();
+
+            if (response.hasError()) {
+                throw new RuntimeException("Erro ao obter métricas do sistema: " + response.getError().getMessage());
+            }
+
+            // Decode response and create SystemMetrics object
+            String result = response.getValue();
+            // TODO: Implement proper decoding based on contract structure
+
+            return new SystemMetrics();
+
+        } catch (Exception e) {
+            System.out.println("Error getting system metrics: " + e.getMessage());
+            return new SystemMetrics(); // Return empty metrics on error
+        }
+    }
+
+    /**
+     * Check if a wallet has issuer role
+     */
+    public boolean hasIssuerRole(String walletAddress) {
+        try {
+            String functionData = contractService.getHasRoleFunctionData(walletAddress);
+
+            EthCall response = web3j.ethCall(
+                Transaction.createEthCallTransaction(null, didRegistryAddress, functionData),
+                DefaultBlockParameterName.LATEST
+            ).send();
+
+            if (response.hasError()) {
+                throw new RuntimeException("Erro ao verificar hasRole: " + response.getError().getMessage());
+            }
+
+            String result = response.getValue();
+            return !result.equals("0x0000000000000000000000000000000000000000000000000000000000000000");
+
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao verificar role de issuer: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Check if a wallet has issuer role for a specific contract
+     */
+    public boolean hasIssuerRoleForContract(String contractAddress, String walletAddress) {
+        try {
+            String hasRoleFunctionData = contractService.getHasRoleFunctionData(walletAddress);
+
+            org.web3j.protocol.core.methods.request.Transaction hasRoleTransaction =
+                org.web3j.protocol.core.methods.request.Transaction.createEthCallTransaction(
+                    null, contractAddress, hasRoleFunctionData
+                );
+
+            org.web3j.protocol.core.methods.response.EthCall hasRoleCall = web3j.ethCall(hasRoleTransaction,
+                org.web3j.protocol.core.DefaultBlockParameterName.LATEST).send();
+
+            if (hasRoleCall.hasError()) {
+                throw new RuntimeException("Erro ao verificar hasRole no contrato " + contractAddress + ": " + hasRoleCall.getError().getMessage());
+            }
+
+            String result = hasRoleCall.getValue();
+            return !result.equals("0x0000000000000000000000000000000000000000000000000000000000000000");
+
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao verificar role de issuer para contrato " + contractAddress + ": " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Check if credential exists in the contract
+     */
+    public boolean credentialExists(String credentialId) {
+        try {
+            // Use getCredentialRevocation to check if credential exists
+            // If it returns valid data (not all zeros), credential exists
+            String functionData = contractService.getCredentialRevocationFunctionData(credentialId);
+
+            EthCall response = web3j.ethCall(
+                Transaction.createEthCallTransaction(null, didRegistryAddress, functionData),
+                DefaultBlockParameterName.LATEST
+            ).send();
+
+            if (response.hasError()) {
+                System.out.println("Error checking credential existence: " + response.getError().getMessage());
+                return false;
+            }
+
+            String result = response.getValue();
+            // If result is not all zeros, credential exists (even if not revoked)
+            return !"0x0000000000000000000000000000000000000000000000000000000000000000".equals(result) &&
+                   result.length() > 66; // Valid response should be longer than empty bytes32
+
+        } catch (Exception e) {
+            System.out.println("Error checking credential existence: " + e.getMessage());
+            return false;
+        }
     }
 }
 
