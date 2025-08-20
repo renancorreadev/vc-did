@@ -63,8 +63,15 @@ Cada pasta pode ser executada independentemente:
 4. **Criar DIDs**: Para issuer e holder
 5. **Criar StatusList**: Base para as credenciais
 6. **Emitir Credencial**: Teste principal
-7. **Verificar Credencial**: Validação no sistema
-8. **Testar Revogação**: Se necessário
+7. **Verificar Credencial no Blockchain**: Validação no blockchain
+8. **Verificar Credencial no Sistema**: Validação no sistema
+9. **Verificar Status de Revogação**: Status atual da credencial
+10. **Verificar Credencial com JWT**: Validação usando JWT retornado
+11. **Verificar StatusList Após Emissão**: Monitoramento da StatusList
+12. **Revogar Credencial**: Teste de revogação
+13. **Verificar Credencial Revogada**: Validação após revogação
+14. **Verificar StatusList Após Revogação**: Monitoramento pós-revogação
+15. **Verificar Status de Revogação Final**: Confirmação da revogação
 
 ## 🔧 Endpoints Principais
 
