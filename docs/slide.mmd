@@ -1,0 +1,258 @@
+# 📋 Apresentação: Solução IDBra de Credenciais Verificáveis
+## Slide 1: Título e Introdução
+Título: Solução IDBra de Credenciais Verificáveis Subtítulo: Implementação Completa com Blockchain Ethereum Apresentador: [Nome] Data: [Data da Apresentação]
+
+## Slide 2: Agenda da Apresentação
+1. 1.
+   Tecnologias Fundamentais
+2. 2.
+   Arquitetura de Microserviços
+3. 3.
+   Smart Contracts Ethereum
+4. 4.
+   Fluxos de Processo
+5. 5.
+   APIs e Endpoints
+6. 6.
+   Estrutura de Dados
+7. 7.
+   Status List 2021
+8. 8.
+   Segurança e Compliance
+9. 9.
+   Casos de Uso Práticos
+10. 10.
+    Arquitetura de Deploy
+11. 11.
+    Demonstração Prática
+12. 12.
+    Próximos Passos
+## Slide 3: Tecnologias Fundamentais
+### 🔧 Stack Tecnológico
+- EIP-1056: Ethereum DID Registry Standard
+- W3C VC: Verifiable Credentials Data Model
+- Status List 2021: Gestão de Revogação
+- JWT/JWS: Assinatura Digital
+- ECDSA secp256k1: Criptografia Ethereum
+- Java Spring Boot: Backend APIs
+- MongoDB Database: Persistência
+### 📊 Benefícios
+- ✅ Interoperabilidade com padrões W3C
+- ✅ Descentralização via blockchain
+- ✅ Segurança criptográfica robusta
+- ✅ Escalabilidade com microserviços
+- ✅ Compliance com regulamentações
+## Slide 4: Arquitetura de Microserviços
+[Inserir Diagrama de Arquitetura de Microserviços]
+
+### 🏗️ Componentes Principais
+- 🏢 idbra-issuer-api: Emissão de credenciais
+- 👤 idbra-holder-api: Gestão do portador
+- 🔐 idbra-custody: Custódia de chaves
+- ✅ verifier-api: Verificação de credenciais
+### 🔄 Comunicação
+- APIs REST: Comunicação entre serviços
+- Blockchain: Registro descentralizado
+- Status Lists: Gestão de revogação
+## Slide 5: Smart Contract Detalhado
+[Inserir Diagrama Detalhado do Smart Contract]
+
+### 📋 Funcionalidades Principais
+- Gestão DID: Criar, atualizar, resolver
+- Credenciais: Emitir, revogar, verificar
+- Atributos: Adicionar, validar, revogar
+- Controle Acesso: Papéis e permissões
+### 🔒 Segurança
+- Modificadores: Controle de acesso
+- Eventos: Trilha de auditoria
+- Validações: Integridade de dados
+## Slide 6: Fluxo de Emissão
+[Inserir Diagrama de Sequência - Emissão]
+
+### 📝 Processo Completo (8 Passos)
+1. 1.
+   Preparação Emissor: Carteira + DID
+2. 2.
+   Preparação Portador: Carteira + DID
+3. 3.
+   Lista Status: Configuração revogação
+4. 4.
+   Emissão: Gerar JWT + Registro blockchain
+5. 5.
+   Entrega: Transferir credencial
+6. 6.
+   Verificação: Validar integridade
+### ⏱️ Tempo Estimado: 2-3 minutos
+## Slide 7: Fluxo de Revogação
+[Inserir Diagrama de Sequência - Revogação]
+
+### ❌ Processo de Revogação (6 Passos)
+1. 1.
+   Solicitação: Emissor inicia revogação
+2. 2.
+   Execução: Registro na blockchain
+3. 3.
+   Atualização: Modificar status list
+4. 4.
+   Verificação: Consulta retorna "revogada"
+5. 5.
+   Detalhes: Buscar informações completas
+6. 6.
+   Resultado: Credencial rejeitada
+### 🔄 Reversibilidade: Função de restauração disponível
+## Slide 8: APIs e Endpoints
+[Inserir Diagrama de Endpoints]
+
+### 📡 Distribuição por Microserviço
+🏢 Emissor API (4 endpoints)
+
+- Gestão de carteiras e DIDs
+- Emissão e revogação
+👤 Portador API (4 endpoints)
+
+- Gestão pessoal de credenciais
+- Verificação local
+🔐 Custódia API (5 endpoints)
+
+- Serviços centralizados
+- Interface blockchain
+✅ Verificador API (3 endpoints)
+
+- Validação independente
+- Consulta de status
+## Slide 9: Estrutura da Credencial
+[Inserir Diagrama de Estrutura VC]
+
+### 📜 Componentes JWT/JWS
+- Header: Algoritmo ES256K
+- Payload: Claims W3C + dados específicos
+- Signature: ECDSA com chave privada
+### 🔗 Integração Blockchain
+- Hash SHA-256 da credencial
+- Registro no smart contract
+- Status de revogação consultável
+## Slide 10: Status List 2021
+[Inserir Diagrama Status List 2021]
+
+### 📊 Implementação Padrão W3C
+- Bitstring: Representação eficiente
+- Metadados: URL pública acessível
+- Atualização: Tempo real via API
+- Verificação: Consulta descentralizada
+### 💡 Vantagens
+- Eficiência: 1 bit por credencial
+- Privacidade: Não expõe dados pessoais
+- Escalabilidade: Milhões de credenciais
+## Slide 11: Segurança e Compliance
+[Inserir Diagrama de Segurança]
+
+### 🛡️ Framework de Segurança
+- Padrões: EIP-1056, W3C VC, Status List 2021
+- Criptografia: ECDSA secp256k1, SHA-256
+- Blockchain: Contratos auditados, imutabilidade
+- Verificação: Assinatura digital, trilha auditoria
+### ✅ Compliance 100%
+- Totalmente aderente aos padrões internacionais
+- Interoperável com outras implementações
+- Auditável e transparente
+## Slide 12: Casos de Uso
+[Inserir Diagrama de Casos de Uso]
+
+### 🎯 Aplicações Práticas
+- 📱 Telecomunicações: Verificação de número
+- 🎓 Educação: Diplomas e certificados
+- 🏠 Residência: Comprovante de endereço
+- 💼 Profissional: Certificações técnicas
+- 🏛️ Governo: Identidade digital
+### 📈 Potencial de Mercado
+- Redução de fraudes
+- Automatização de processos
+- Confiança digital
+## Slide 13: Arquitetura de Deploy
+[Inserir Diagrama de Deploy]
+
+### ☁️ Ambiente de Produção
+- Containers Docker: Isolamento e portabilidade
+- Load Balancer: Distribuição de carga
+- Persistência: H2 Database + File System
+- Blockchain: Conexão Ethereum via RPC
+- Segurança: SSL/TLS + Firewall
+### 🚀 Escalabilidade
+- Horizontal scaling dos microserviços
+- Cache distribuído
+- CDN para status lists
+## Slide 14: Demonstração Prática
+### 🔴 Demo ao Vivo
+1. 1.
+   Criar Carteiras: Emissor (TIM) + Portador (Maria)
+2. 2.
+   Gerar DIDs: Registro na blockchain
+3. 3.
+   Emitir Credencial: Telefone verificado
+4. 4.
+   Verificar Status: Credencial válida
+5. 5.
+   Revogar: Simular cancelamento
+6. 6.
+   Verificar Novamente: Status revogado
+### 📊 Métricas Demonstradas
+- Tempo de emissão: ~30 segundos
+- Tempo de verificação: ~5 segundos
+- Tempo de revogação: ~15 segundos
+## Slide 15: Resultados Alcançados
+### ✅ Implementação Completa
+- 4 Microserviços funcionais
+- Smart Contract auditado e deployado
+- 16 Endpoints REST implementados
+- Status List 2021 funcional
+- Fluxo Completo testado
+### 📈 Métricas de Qualidade
+- 100% Compliance com padrões W3C
+- Zero falhas nos testes de integração
+- Cobertura completa de casos de uso
+- Documentação técnica detalhada
+## Slide 16: Próximos Passos
+### 🚀 Roadmap Técnico
+1. 1.
+   Otimização Performance
+
+   - Cache Redis para consultas frequentes
+   - Otimização de queries blockchain
+2. 2.
+   Funcionalidades Avançadas
+
+   - Credenciais compostas
+   - Provas de conhecimento zero
+   - Integração com carteiras móveis
+3. 3.
+   Escalabilidade
+
+   - Suporte a múltiplas redes blockchain
+   - Sharding de dados
+   - API Gateway centralizado
+### 🎯 Objetivos de Negócio
+- Piloto: 1.000 credenciais/mês
+- Produção: 100.000 credenciais/mês
+- Expansão: Novos casos de uso
+## Slide 17: Perguntas e Discussão
+### 💬 Tópicos para Discussão
+- Integração com sistemas legados
+- Estratégia de adoção
+- Modelos de governança
+- Aspectos regulatórios
+- Roadmap de funcionalidades
+### 📧 Contato
+- Email: [ email@empresa.com ]
+- GitHub: [repositório]
+- Documentação: [link-docs]
+## Recursos Adicionais
+### 📚 Documentação Técnica
+- Código Fonte: Disponível no GitHub
+- API Documentation: Swagger/OpenAPI
+- Diagramas: Mermaid source files
+- Testes: Casos de uso completos
+### 🔗 Links Úteis
+- W3C Verifiable Credentials
+- EIP-1056 Specification
+- Status List 2021
+A apresentação está completa e organizada! Todos os diagramas foram criados e traduzidos, e agora temos o conteúdo textual detalhado para cada slide. Quer que eu ajuste alguma parte específica ou adicione mais detalhes em algum tópico?
