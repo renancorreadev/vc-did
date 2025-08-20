@@ -1,0 +1,36 @@
+flowchart TD
+    subgraph "Solução IDBra - Credenciais Verificáveis"
+        subgraph "APIs de Microserviços"
+            IA["🏢 API Emissor<br/>(idbra-issuer-api)<br/>Emissão de Credenciais"]
+            HA["👤 API Portador<br/>(idbra-holder-api)<br/>Gestão de Credenciais"]
+            CA["🔐 API Custódia<br/>(idbra-custody)<br/>Gestão de Carteiras"]
+            VA["✅ API Verificador<br/>(verifier-api)<br/>Verificação de Credenciais"]
+        end
+
+        subgraph "Camada Blockchain"
+            BC["⛓️ Rede Ethereum<br/>Smart Contracts"]
+            SC["📋 IDBraDIDRegistry<br/>Registro DID"]
+        end
+
+        subgraph "Armazenamento"
+            DB["🗄️ Banco de Dados<br/>Custódia"]
+            SL["📊 Lista de Status<br/>Revogação"]
+        end
+    end
+
+    IA -.-> CA
+    HA -.-> CA
+    VA -.-> CA
+    CA --> BC
+    BC --> SC
+    CA --> DB
+    IA --> SL
+    VA --> SL
+
+    classDef apiStyle fill:#000,stroke:#fff,stroke-width:2px,color:#fff
+    classDef blockchainStyle fill:#333,stroke:#fff,stroke-width:2px,color:#fff
+    classDef storageStyle fill:#666,stroke:#fff,stroke-width:2px,color:#fff
+
+    class IA,HA,CA,VA apiStyle
+    class BC,SC blockchainStyle
+    class DB,SL storageStyle

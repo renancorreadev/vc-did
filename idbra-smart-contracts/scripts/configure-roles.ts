@@ -28,46 +28,51 @@ const request = {
     type: "legacy" as const,
 };
 
-// Enderecos dos contratos deployados
-const DID_REGISTRY = "0x8553c57aC9a666EAfC517Ffc4CF57e21d2D3a1cb" as `0x${string}`;
-const STATUS_LIST_MANAGER = "0x93a284C91768F3010D52cD37f84f22c5052be40b" as `0x${string}`;
+// Endereço do novo contrato IDBraDIDRegistry deployado
+const IDBRA_DID_REGISTRY = "0x34c2AcC42882C0279A64bB1a4B1083D483BdE886" as `0x${string}`;
 
-// Enderecos de roles (defina no .env ou use o mesmo do admin)
-const REGISTRAR = (process.env.REGISTRAR_ADDRESS ?? account.address) as `0x${string}`;
-const ISSUER = (process.env.ISSUER_ADDRESS ?? account.address) as `0x${string}`;
+// Endereço que receberá todas as roles
+const TARGET_ADDRESS = "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73" as `0x${string}`;
 
-// ---------- Configurar DIDRegistry ----------
-console.log("\nConfigurando DIDRegistry...");
-const did = await viem.getContractAt("DIDRegistry", DID_REGISTRY);
+// ---------- Configurar IDBraDIDRegistry ----------
+console.log("\nConfigurando IDBraDIDRegistry...");
+const didRegistry = await viem.getContractAt("IDBraDIDRegistry", IDBRA_DID_REGISTRY);
 
-// REGISTRAR_ROLE direto do contrato
-const registrarRole = await did.read.REGISTRAR_ROLE();
-console.log("Grant REGISTRAR_ROLE ->", REGISTRAR);
-const txGrantRegistrar = await did.write.grantRole([registrarRole, REGISTRAR], {
+// Obter as roles direto do contrato
+const REGISTRAR_ROLE = await didRegistry.read.REGISTRAR_ROLE();
+const ISSUER_ROLE = await didRegistry.read.ISSUER_ROLE();
+const AUDITOR_ROLE = await didRegistry.read.AUDITOR_ROLE();
+
+console.log("Grant REGISTRAR_ROLE ->", TARGET_ADDRESS);
+const txGrantRegistrar = await didRegistry.write.grantRole([REGISTRAR_ROLE, TARGET_ADDRESS], {
     account: account.address,
     ...request,
 });
 await publicClient.waitForTransactionReceipt({ hash: txGrantRegistrar });
 
-// ---------- Configurar StatusListManager ----------
-console.log("\nConfigurando StatusListManager...");
-const slm = await viem.getContractAt("StatusListManager", STATUS_LIST_MANAGER);
-
-// ISSUER_ROLE direto do contrato
-const issuerRole = await slm.read.ISSUER_ROLE();
-console.log("Grant ISSUER_ROLE ->", ISSUER);
-const txGrantIssuer = await slm.write.grantRole([issuerRole, ISSUER], {
+console.log("Grant ISSUER_ROLE ->", TARGET_ADDRESS);
+const txGrantIssuer = await didRegistry.write.grantRole([ISSUER_ROLE, TARGET_ADDRESS], {
     account: account.address,
     ...request,
 });
 await publicClient.waitForTransactionReceipt({ hash: txGrantIssuer });
 
+console.log("Grant AUDITOR_ROLE ->", TARGET_ADDRESS);
+const txGrantAuditor = await didRegistry.write.grantRole([AUDITOR_ROLE, TARGET_ADDRESS], {
+    account: account.address,
+    ...request,
+});
+await publicClient.waitForTransactionReceipt({ hash: txGrantAuditor });
+
 console.log("\n✅ Configuração concluída");
 console.log({
     network: connection.networkName,
     admin: account.address,
-    DIDRegistry: DID_REGISTRY,
-    StatusListManager: STATUS_LIST_MANAGER,
-    REGISTRAR,
-    ISSUER,
+    IDBraDIDRegistry: IDBRA_DID_REGISTRY,
+    targetAddress: TARGET_ADDRESS,
+    roles: {
+        REGISTRAR_ROLE,
+        ISSUER_ROLE,
+        AUDITOR_ROLE
+    }
 });

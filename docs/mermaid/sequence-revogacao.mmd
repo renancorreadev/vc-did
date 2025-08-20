@@ -1,0 +1,30 @@
+sequenceDiagram
+    participant E as 🏢 Emissor
+    participant API as 📡 API Custódia
+    participant BC as ⛓️ Blockchain
+    participant V as ✅ Verificador
+    participant P as 👤 Portador
+
+    Note over E,P: Processo de Revogação de Credencial
+
+    E->>API: 1️⃣ Solicitar Revogação
+    Note over E,API: credentialId + razão
+
+    API->>BC: 2️⃣ Executar Revogação
+    Note over API,BC: 2.1 Chamar revokeCredential()
+    BC-->>API: ✅ Credencial Revogada
+
+    API->>API: 3️⃣ Atualizar Lista Status
+    Note over API: 3.1 Marcar como revogada
+    API-->>E: ✅ Confirmação Revogação
+
+    V->>API: 4️⃣ Verificar Credencial
+    API->>BC: 4.1 Consultar Status Revogação
+    BC-->>API: ❌ Status: REVOGADA
+
+    API->>API: 5️⃣ Buscar Detalhes
+    Note over API: 5.1 getCredentialRevocation()
+    API-->>V: ❌ Credencial Inválida + Detalhes
+
+    Note over V: ❌ Credencial Rejeitada
+    V-->>P: 6️⃣ Verificação Falhou

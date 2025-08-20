@@ -1,0 +1,50 @@
+flowchart TD
+    subgraph "📜 Credencial Verificável (JWT/JWS)"
+        subgraph "🔒 Cabeçalho JWT"
+            H1["alg: ES256K<br/>Algoritmo Assinatura"]
+            H2["typ: JWT<br/>Tipo Token"]
+        end
+
+        subgraph "📋 Payload (Claims)"
+            subgraph "Metadados W3C"
+                P1["@context<br/>Contexto VC"]
+                P2["type<br/>VerifiableCredential"]
+                P3["issuer<br/>DID do Emissor"]
+                P4["issuanceDate<br/>Data Emissão"]
+            end
+
+            subgraph "Dados da Credencial"
+                P5["credentialSubject<br/>• id: DID Portador<br/>• claims: Dados"]
+                P6["credentialStatus<br/>• id: URL Status<br/>• type: StatusList2021"]
+            end
+
+            subgraph "Claims JWT"
+                P7["iss: Emissor<br/>sub: Portador<br/>iat: Timestamp"]
+            end
+        end
+
+        subgraph "✍️ Assinatura"
+            S1["Assinatura ECDSA<br/>Chave Privada Emissor"]
+        end
+    end
+
+    subgraph "🔗 Integração Blockchain"
+        B1["Hash SHA-256<br/>da Credencial"]
+        B2["Registro no<br/>Smart Contract"]
+        B3["Status de<br/>Revogação"]
+    end
+
+    P5 --> B1
+    B1 --> B2
+    B2 --> B3
+    P6 --> B3
+
+    classDef headerStyle fill:#000,stroke:#fff,stroke-width:2px,color:#fff
+    classDef payloadStyle fill:#333,stroke:#fff,stroke-width:2px,color:#fff
+    classDef signatureStyle fill:#666,stroke:#fff,stroke-width:2px,color:#fff
+    classDef blockchainStyle fill:#999,stroke:#fff,stroke-width:2px,color:#fff
+
+    class H1,H2 headerStyle
+    class P1,P2,P3,P4,P5,P6,P7 payloadStyle
+    class S1 signatureStyle
+    class B1,B2,B3 blockchainStyle

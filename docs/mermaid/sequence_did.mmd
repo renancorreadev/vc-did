@@ -1,0 +1,26 @@
+sequenceDiagram
+    participant U as 👤 Usuário
+    participant API as 📡 API Custódia
+    participant BC as ⛓️ Blockchain
+    participant W as 🔐 Wallet
+
+    Note over U,W: Processo de Criação de DID
+
+    U->>API: 1️⃣ Solicitar Criação DID
+
+    API->>W: 2️⃣ Gerar Par de Chaves
+    Note over W: 2.1 Gerar chave privada<br/>2.2 Derivar chave pública
+    W-->>API: ✅ Chaves Geradas
+
+    API->>API: 3️⃣ Construir Documento DID
+    Note over API: 3.1 Gerar ID único<br/>3.2 Adicionar chave pública<br/>3.3 Definir endpoints
+
+    API->>BC: 4️⃣ Registrar DID
+    Note over API,BC: 4.1 Chamar createDID()<br/>4.2 Passar documento JSON
+    BC-->>API: ✅ DID Registrado
+
+    API->>API: 5️⃣ Armazenar Localmente
+    Note over API: 5.1 Salvar chave privada<br/>5.2 Indexar DID<br/>5.3 Criar metadados
+
+    API-->>U: 6️⃣ ✅ DID Criado com Sucesso
+    Note over U: did:ethr:0x...

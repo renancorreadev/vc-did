@@ -1,0 +1,741 @@
+
+### 1. Importar wallet administrativa no sistema (usando variável de ambiente)
+POST http://147.93.11.54:8082/api/wallets/import-admin
+
+### ========================================
+### 2. CRIAÇÃO DE WALLETS - ISSUER E HOLDER SEPARADOS
+### ========================================
+
+HTTP/1.1 200 OK
+Vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 20 Aug 2025 15:17:19 GMT
+Connection: close
+
+{
+  "address": "0xfe3b557e8fb62b89f4916b721be55ceb828dbd73",
+  "name": "Admin Wallet",
+  "description": "Wallet administrativa para operações de smart contract",
+  "createdAt": "2025-08-20T15:17:19.435255436",
+  "updatedAt": "2025-08-20T15:17:19.435275746",
+  "active": true
+}
+
+
+### 2.1 Criar wallet do ISSUER (ANATEL/Operadora)
+# @name createIssuerWallet
+POST http://147.93.11.54:8082/api/wallets?name=WalletANATEL&description=Wallet Oficial ANATEL para Emissão de Credenciais
+Content-Type: application/json
+
+HTTP/1.1 200 OK
+Vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 20 Aug 2025 15:17:32 GMT
+Connection: close
+
+{
+  "address": "0x88fe625254468b5edcc66f6502052e2c4d7be6a3",
+  "name": "WalletANATEL",
+  "description": "Wallet Oficial ANATEL para Emissão de Credenciais",
+  "createdAt": "2025-08-20T15:17:32.822639854",
+  "updatedAt": "2025-08-20T15:17:32.822646163",
+  "active": true
+}
+
+###
+
+### 2.2 Criar wallet do HOLDER (Cliente Final)
+# @name createHolderWallet
+POST http://147.93.11.54:8082/api/wallets?name=WalletCliente&description=Wallet do Cliente Final para Receber Credenciais
+Content-Type: application/json
+
+
+HTTP/1.1 200 OK
+Vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 20 Aug 2025 15:17:43 GMT
+Connection: close
+
+{
+  "address": "0x8c77a9501cccbb3e906ab3379ed592839b16ac47",
+  "name": "WalletCliente",
+  "description": "Wallet do Cliente Final para Receber Credenciais",
+  "createdAt": "2025-08-20T15:17:43.626892042",
+  "updatedAt": "2025-08-20T15:17:43.626900022",
+  "active": true
+}
+
+
+###
+
+### 2.3 Verificar wallet do issuer criada
+# @name checkIssuerWallet
+GET http://147.93.11.54:8082/api/wallets/{{createIssuerWallet.response.body.address}}
+
+###
+
+### 2.4 Verificar wallet do holder criada
+# @name checkHolderWallet
+GET http://147.93.11.54:8082/api/wallets/{{createHolderWallet.response.body.address}}
+
+###
+
+### 2.5 Verificar se wallet do issuer tem ISSUER_ROLE
+# @name checkIssuerRole
+GET http://147.93.11.54:8082/api/blockchain/check-role/{{createIssuerWallet.response.body.address}}
+
+###
+
+### 2.6 Conceder ISSUER_ROLE para a wallet da ANATEL (se necessário)
+# @name grantIssuerRole
+POST http://147.93.11.54:8082/api/blockchain/grant-issuer-role/{{createIssuerWallet.response.body.address}}
+
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 20 Aug 2025 15:18:08 GMT
+Connection: close
+
+{
+  "success": true,
+  "gasUsed": "52113",
+  "timestamp": "2025-08-20T15:18:08.426422172",
+  "transactionHash": "0x792b92b861429608f81a9f13bf32758dc0502e0640edd9f6bfa58d90f8e8bdef",
+  "blockNumber": "321301",
+  "walletAddress": "0x88fe625254468b5edcc66f6502052e2c4d7be6a3"
+}
+###
+
+### 2.7 Verificar novamente se wallet do issuer tem ISSUER_ROLE após concessão
+# @name checkIssuerRoleAfterGrant
+GET http://147.93.11.54:8082/api/blockchain/check-role/{{createIssuerWallet.response.body.address}}
+
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 20 Aug 2025 15:18:21 GMT
+Connection: close
+
+{
+  "didRegistry": true,
+  "timestamp": "2025-08-20T15:18:21.268686371",
+  "hasIssuerRole": true,
+  "walletAddress": "0x88fe625254468b5edcc66f6502052e2c4d7be6a3"
+}
+
+###
+
+### ========================================
+### 3. GERENCIAMENTO DE DID - NOVA FUNCIONALIDADE
+### ========================================
+
+### 3.1 Criar DID para o usuário holder (cliente)
+# @name createHolderDID
+POST http://147.93.11.54:8082/api/blockchain/did/create
+Content-Type: application/x-www-form-urlencoded
+
+identity={{createHolderWallet.response.body.address}}&didDocument={"@context":["https://www.w3.org/ns/did/v1"],"id":"did:ethr:{{createHolderWallet.response.body.address}}","verificationMethod":[{"id":"did:ethr:{{createHolderWallet.response.body.address}}#controller","type":"EcdsaSecp256k1VerificationKey2019","controller":"did:ethr:{{createHolderWallet.response.body.address}}","ethereumAddress":"{{createHolderWallet.response.body.address}}"}]}
+
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 20 Aug 2025 15:18:32 GMT
+Connection: close
+
+{
+  "transactionHash": "0xc5c070bb276b2ea9c24363bbd8618c9438e070317cef6cf4a06f93577ea4d21e",
+  "identity": "0x8c77a9501cccbb3e906ab3379ed592839b16ac47",
+  "timestamp": "2025-08-20T15:18:32.690462487",
+  "success": true
+}
+
+###
+
+### 3.2 Criar DID para o issuer (ANATEL)
+# @name createIssuerDID
+POST http://147.93.11.54:8082/api/blockchain/did/create
+Content-Type: application/x-www-form-urlencoded
+
+identity={{createIssuerWallet.response.body.address}}&didDocument={"@context":["https://www.w3.org/ns/did/v1"],"id":"did:ethr:{{createIssuerWallet.response.body.address}}","verificationMethod":[{"id":"did:ethr:{{createIssuerWallet.response.body.address}}#controller","type":"EcdsaSecp256k1VerificationKey2019","controller":"did:ethr:{{createIssuerWallet.response.body.address}}","ethereumAddress":"{{createIssuerWallet.response.body.address}}"}]}
+
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 20 Aug 2025 15:18:44 GMT
+Connection: close
+
+{
+  "transactionHash": "0x33d0a91a2a604b62d72994ad025219bd4ccc73d990301b8f817dd97b24bd31d5",
+  "identity": "0x88fe625254468b5edcc66f6502052e2c4d7be6a3",
+  "timestamp": "2025-08-20T15:18:44.077166351",
+  "success": true
+}
+
+###
+
+### ========================================
+### 4. CRIAÇÃO DE STATUS LIST - BASE PARA CREDENCIAIS
+### ========================================
+
+### 4.1 Criar StatusList para credenciais de telefone (usando wallet do issuer)
+# @name createStatusList
+POST http://147.93.11.54:8082/api/statuslist?listId=telefone-001&uri=https://idbra.example/status/telefone-001.json&purpose=revocation&issuer=did:web:anatel.gov.br&issuerWalletAddress={{createIssuerWallet.response.body.address}}
+
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 20 Aug 2025 15:18:58 GMT
+Connection: close
+
+{
+  "id": 1,
+  "listId": "telefone-001",
+  "uri": "https://idbra.example/status/telefone-001.json",
+  "hash": "0x0xd1c1186747b129d56c73192a9d9e753234dde370b79f8f3fe699d144b7e94e79",
+  "version": 1,
+  "purpose": "revocation",
+  "issuer": "did:web:anatel.gov.br",
+  "createdAt": "2025-08-20T15:18:56.153091191",
+  "updatedAt": "2025-08-20T15:18:56.153098251",
+  "statusListData": "{\"id\":\"https://idbra.example/status/telefone-001.json\",\"type\":\"StatusList2021Credential\",\"issuer\":\"did:web:anatel.gov.br\",\"issued\":\"2025-08-20T15:18:56.149346159\",\"validFrom\":\"2025-08-20T15:18:56.149346159\",\"validUntil\":\"2035-08-20T15:18:56.14973373\",\"credentialSubject\":\"{statusPurpose=revocation, encodedList=, type=StatusList2021, id=https://idbra.example/status/telefone-001.json}\",\"statusList\":[],\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://w3id.org/vc/status-list/2021/v1\"]}",
+  "issuerWalletAddress": "0x88fe625254468b5edcc66f6502052e2c4d7be6a3"
+}
+
+###
+
+### 4.2 Verificar StatusList criada
+# @name checkStatusList
+GET http://147.93.11.54:8082/api/statuslist
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 20 Aug 2025 15:19:10 GMT
+Connection: close
+
+[
+  {
+    "id": 1,
+    "listId": "telefone-001",
+    "uri": "https://idbra.example/status/telefone-001.json",
+    "hash": "0x0xd1c1186747b129d56c73192a9d9e753234dde370b79f8f3fe699d144b7e94e79",
+    "version": 1,
+    "purpose": "revocation",
+    "issuer": "did:web:anatel.gov.br",
+    "createdAt": "2025-08-20T15:18:56.153091",
+    "updatedAt": "2025-08-20T15:18:56.153098",
+    "statusListData": "{\"id\":\"https://idbra.example/status/telefone-001.json\",\"type\":\"StatusList2021Credential\",\"issuer\":\"did:web:anatel.gov.br\",\"issued\":\"2025-08-20T15:18:56.149346159\",\"validFrom\":\"2025-08-20T15:18:56.149346159\",\"validUntil\":\"2035-08-20T15:18:56.14973373\",\"credentialSubject\":\"{statusPurpose=revocation, encodedList=, type=StatusList2021, id=https://idbra.example/status/telefone-001.json}\",\"statusList\":[],\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://w3id.org/vc/status-list/2021/v1\"]}",
+    "issuerWalletAddress": "0x88fe625254468b5edcc66f6502052e2c4d7be6a3"
+  }
+]
+
+
+###
+
+### 4.3 Verificar metadados da StatusList
+# @name checkStatusListMetadata
+GET http://147.93.11.54:8082/api/statuslist/telefone-001/metadata
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 20 Aug 2025 15:19:21 GMT
+Connection: close
+
+{
+  "listId": "telefone-001",
+  "createdAt": "2025-08-20T15:18:56.153091",
+  "purpose": "revocation",
+  "validCredentials": 0,
+  "revokedCredentials": 0,
+  "totalCredentials": 0,
+  "uri": "https://idbra.example/status/telefone-001.json",
+  "version": 1,
+  "hash": "0x0xd1c1186747b129d56c73192a9d9e753234dde370b79f8f3fe699d144b7e94e79",
+  "issuer": "did:web:anatel.gov.br",
+  "updatedAt": "2025-08-20T15:18:56.153098"
+}
+
+###
+
+### ========================================
+### 5. EMISSÃO DE CREDENCIAL - TESTE PRINCIPAL COM WALLETS SEPARADAS
+### ========================================
+
+### 5.1 Criar credencial verificável de linha telefônica (ISSUER → HOLDER)
+# @name createCredential
+POST http://147.93.11.54:8082/api/credentials
+Content-Type: application/json
+
+{
+  "issuerDid": "did:web:anatel.gov.br",
+  "holderDid": "did:ethr:{{createHolderWallet.response.body.address}}",
+  "holderWalletAddress": "{{createHolderWallet.response.body.address}}",
+  "credentialType": "PhoneLineCredential",
+  "credentialSubject": {
+    "id": "did:ethr:{{createHolderWallet.response.body.address}}",
+    "phoneService": {
+      "phoneNumber": "+5511987654321",
+      "carrier": "Vivo S.A.",
+      "carrierCode": "VIVO-BR",
+      "lineType": "Móvel Pós-Pago",
+      "activationDate": "2024-01-15",
+      "plan": "Vivo Controle 25GB",
+      "status": "Ativo",
+      "cpfHolder": "123.456.789-00",
+      "holderName": "João Silva Santos",
+      "address": {
+        "street": "Rua das Flores, 123",
+        "city": "São Paulo",
+        "state": "SP",
+        "zipCode": "01234-567"
+      },
+      "verificationDate": "2024-12-20",
+      "regulatoryCompliance": true
+    }
+  },
+  "expiresAt": "2025-12-15T23:59:59",
+  "statusListId": "telefone-001",
+  "issuerWalletAddress": "{{createIssuerWallet.response.body.address}}"
+}
+
+###
+
+### 5.2 Verificar credencial criada no blockchain
+# @name checkCredentialBlockchain
+GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/exists
+Content-Type: application/json
+
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 20 Aug 2025 15:22:27 GMT
+Connection: close
+
+{
+  "id": 1,
+  "credentialId": "urn:uuid:37b78056-423f-4a01-884b-46b3f25a6389",
+  "issuerDid": "did:web:anatel.gov.br",
+  "holderDid": "did:ethr:0x8c77a9501cccbb3e906ab3379ed592839b16ac47",
+  "credentialData": "{\"sub\":\"did:ethr:0x8c77a9501cccbb3e906ab3379ed592839b16ac47\",\"iss\":\"did:web:anatel.gov.br\",\"exp\":1765843199,\"iat\":1755703325,\"vc\":{\"credentialSubject\":{\"id\":\"did:ethr:0x8c77a9501cccbb3e906ab3379ed592839b16ac47\",\"phoneService\":{\"phoneNumber\":\"+5511987654321\",\"carrier\":\"Vivo S.A.\",\"carrierCode\":\"VIVO-BR\",\"lineType\":\"Móvel Pós-Pago\",\"activationDate\":\"2024-01-15\",\"plan\":\"Vivo Controle 25GB\",\"status\":\"Ativo\",\"cpfHolder\":\"123.456.789-00\",\"holderName\":\"João Silva Santos\",\"address\":{\"street\":\"Rua das Flores, 123\",\"city\":\"São Paulo\",\"state\":\"SP\",\"zipCode\":\"01234-567\"},\"verificationDate\":\"2024-12-20\",\"regulatoryCompliance\":true}},\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://www.w3.org/2018/credentials/examples/v1\"],\"credentialStatus\":{\"statusListCredential\":\"https://idbra.example/status/telefone-001.json\",\"type\":\"StatusList2021Entry\",\"statusPurpose\":\"revocation\",\"statusListIndex\":1,\"id\":\"https://idbra.example/status/telefone-001.json#1\"},\"type\":[\"VerifiableCredential\",\"PhoneLineCredential\"]},\"jti\":\"urn:uuid:37b78056-423f-4a01-884b-46b3f25a6389\"}",
+  "statusListId": "telefone-001",
+  "statusListIndex": 1,
+  "status": "VALID",
+  "issuedAt": "2025-08-20T15:22:05.205535",
+  "expiresAt": "2025-12-15T23:59:59",
+  "createdAt": "2025-08-20T15:22:05.205517",
+  "updatedAt": "2025-08-20T15:22:05.205525",
+  "jwsToken": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDhjNzdhOTUwMWNjY2JiM2U5MDZhYjMzNzllZDU5MjgzOWIxNmFjNDciLCJpc3MiOiJkaWQ6d2ViOmFuYXRlbC5nb3YuYnIiLCJleHAiOjE3NjU4NDMxOTksImlhdCI6MTc1NTcwMzMyNSwidmMiOnsiY3JlZGVudGlhbFN1YmplY3QiOnsiaWQiOiJkaWQ6ZXRocjoweDhjNzdhOTUwMWNjY2JiM2U5MDZhYjMzNzllZDU5MjgzOWIxNmFjNDciLCJwaG9uZVNlcnZpY2UiOnsicGhvbmVOdW1iZXIiOiIrNTUxMTk4NzY1NDMyMSIsImNhcnJpZXIiOiJWaXZvIFMuQS4iLCJjYXJyaWVyQ29kZSI6IlZJVk8tQlIiLCJsaW5lVHlwZSI6Ik3Ds3ZlbCBQw7NzLVBhZ28iLCJhY3RpdmF0aW9uRGF0ZSI6IjIwMjQtMDEtMTUiLCJwbGFuIjoiVml2byBDb250cm9sZSAyNUdCIiwic3RhdHVzIjoiQXRpdm8iLCJjcGZIb2xkZXIiOiIxMjMuNDU2Ljc4OS0wMCIsImhvbGRlck5hbWUiOiJKb8OjbyBTaWx2YSBTYW50b3MiLCJhZGRyZXNzIjp7InN0cmVldCI6IlJ1YSBkYXMgRmxvcmVzLCAxMjMiLCJjaXR5IjoiU8OjbyBQYXVsbyIsInN0YXRlIjoiU1AiLCJ6aXBDb2RlIjoiMDEyMzQtNTY3In0sInZlcmlmaWNhdGlvbkRhdGUiOiIyMDI0LTEyLTIwIiwicmVndWxhdG9yeUNvbXBsaWFuY2UiOnRydWV9fSwiQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy9leGFtcGxlcy92MSJdLCJjcmVkZW50aWFsU3RhdHVzIjp7InN0YXR1c0xpc3RDcmVkZW50aWFsIjoiaHR0cHM6Ly9pZGJyYS5leGFtcGxlL3N0YXR1cy90ZWxlZm9uZS0wMDEuanNvbiIsInR5cGUiOiJTdGF0dXNMaXN0MjAyMUVudHJ5Iiwic3RhdHVzUHVycG9zZSI6InJldm9jYXRpb24iLCJzdGF0dXNMaXN0SW5kZXgiOjEsImlkIjoiaHR0cHM6Ly9pZGJyYS5leGFtcGxlL3N0YXR1cy90ZWxlZm9uZS0wMDEuanNvbiMxIn0sInR5cGUiOlsiVmVyaWZpYWJsZUNyZWRlbnRpYWwiLCJQaG9uZUxpbmVDcmVkZW50aWFsIl19LCJqdGkiOiJ1cm46dXVpZDozN2I3ODA1Ni00MjNmLTRhMDEtODg0Yi00NmIzZjI1YTYzODkifQ.simulated_signature",
+  "issuerWalletAddress": "0x88fe625254468b5edcc66f6502052e2c4d7be6a3"
+}
+
+###
+
+### 5.3 Verificar credencial criada no sistema
+# @name checkCredential
+GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 20 Aug 2025 15:33:31 GMT
+Connection: close
+
+{
+  "id": 1,
+  "credentialId": "urn:uuid:37b78056-423f-4a01-884b-46b3f25a6389",
+  "issuerDid": "did:web:anatel.gov.br",
+  "holderDid": "did:ethr:0x8c77a9501cccbb3e906ab3379ed592839b16ac47",
+  "credentialData": "{\"sub\":\"did:ethr:0x8c77a9501cccbb3e906ab3379ed592839b16ac47\",\"iss\":\"did:web:anatel.gov.br\",\"exp\":1765843199,\"iat\":1755703325,\"vc\":{\"credentialSubject\":{\"id\":\"did:ethr:0x8c77a9501cccbb3e906ab3379ed592839b16ac47\",\"phoneService\":{\"phoneNumber\":\"+5511987654321\",\"carrier\":\"Vivo S.A.\",\"carrierCode\":\"VIVO-BR\",\"lineType\":\"Móvel Pós-Pago\",\"activationDate\":\"2024-01-15\",\"plan\":\"Vivo Controle 25GB\",\"status\":\"Ativo\",\"cpfHolder\":\"123.456.789-00\",\"holderName\":\"João Silva Santos\",\"address\":{\"street\":\"Rua das Flores, 123\",\"city\":\"São Paulo\",\"state\":\"SP\",\"zipCode\":\"01234-567\"},\"verificationDate\":\"2024-12-20\",\"regulatoryCompliance\":true}},\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://www.w3.org/2018/credentials/examples/v1\"],\"credentialStatus\":{\"statusListCredential\":\"https://idbra.example/status/telefone-001.json\",\"type\":\"StatusList2021Entry\",\"statusPurpose\":\"revocation\",\"statusListIndex\":1,\"id\":\"https://idbra.example/status/telefone-001.json#1\"},\"type\":[\"VerifiableCredential\",\"PhoneLineCredential\"]},\"jti\":\"urn:uuid:37b78056-423f-4a01-884b-46b3f25a6389\"}",
+  "statusListId": "telefone-001",
+  "statusListIndex": 1,
+  "status": "VALID",
+  "issuedAt": "2025-08-20T15:22:05.205535",
+  "expiresAt": "2025-12-15T23:59:59",
+  "createdAt": "2025-08-20T15:22:05.205517",
+  "updatedAt": "2025-08-20T15:22:05.205525",
+  "jwsToken": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDhjNzdhOTUwMWNjY2JiM2U5MDZhYjMzNzllZDU5MjgzOWIxNmFjNDciLCJpc3MiOiJkaWQ6d2ViOmFuYXRlbC5nb3YuYnIiLCJleHAiOjE3NjU4NDMxOTksImlhdCI6MTc1NTcwMzMyNSwidmMiOnsiY3JlZGVudGlhbFN1YmplY3QiOnsiaWQiOiJkaWQ6ZXRocjoweDhjNzdhOTUwMWNjY2JiM2U5MDZhYjMzNzllZDU5MjgzOWIxNmFjNDciLCJwaG9uZVNlcnZpY2UiOnsicGhvbmVOdW1iZXIiOiIrNTUxMTk4NzY1NDMyMSIsImNhcnJpZXIiOiJWaXZvIFMuQS4iLCJjYXJyaWVyQ29kZSI6IlZJVk8tQlIiLCJsaW5lVHlwZSI6Ik3Ds3ZlbCBQw7NzLVBhZ28iLCJhY3RpdmF0aW9uRGF0ZSI6IjIwMjQtMDEtMTUiLCJwbGFuIjoiVml2byBDb250cm9sZSAyNUdCIiwic3RhdHVzIjoiQXRpdm8iLCJjcGZIb2xkZXIiOiIxMjMuNDU2Ljc4OS0wMCIsImhvbGRlck5hbWUiOiJKb8OjbyBTaWx2YSBTYW50b3MiLCJhZGRyZXNzIjp7InN0cmVldCI6IlJ1YSBkYXMgRmxvcmVzLCAxMjMiLCJjaXR5IjoiU8OjbyBQYXVsbyIsInN0YXRlIjoiU1AiLCJ6aXBDb2RlIjoiMDEyMzQtNTY3In0sInZlcmlmaWNhdGlvbkRhdGUiOiIyMDI0LTEyLTIwIiwicmVndWxhdG9yeUNvbXBsaWFuY2UiOnRydWV9fSwiQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy9leGFtcGxlcy92MSJdLCJjcmVkZW50aWFsU3RhdHVzIjp7InN0YXR1c0xpc3RDcmVkZW50aWFsIjoiaHR0cHM6Ly9pZGJyYS5leGFtcGxlL3N0YXR1cy90ZWxlZm9uZS0wMDEuanNvbiIsInR5cGUiOiJTdGF0dXNMaXN0MjAyMUVudHJ5Iiwic3RhdHVzUHVycG9zZSI6InJldm9jYXRpb24iLCJzdGF0dXNMaXN0SW5kZXgiOjEsImlkIjoiaHR0cHM6Ly9pZGJyYS5leGFtcGxlL3N0YXR1cy90ZWxlZm9uZS0wMDEuanNvbiMxIn0sInR5cGUiOlsiVmVyaWZpYWJsZUNyZWRlbnRpYWwiLCJQaG9uZUxpbmVDcmVkZW50aWFsIl19LCJqdGkiOiJ1cm46dXVpZDozN2I3ODA1Ni00MjNmLTRhMDEtODg0Yi00NmIzZjI1YTYzODkifQ.simulated_signature",
+  "issuerWalletAddress": "0x88fe625254468b5edcc66f6502052e2c4d7be6a3"
+}
+
+###
+
+### 5.4 Verificar status de revogação da credencial
+# @name checkRevocationStatus
+GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/revocation-status
+Content-Type: application/json
+
+###
+
+### ========================================
+### 6. VERIFICAÇÃO DE CREDENCIAL - VALIDAÇÃO
+### ========================================
+
+### 6.1 Verificar credencial com JWT
+# @name verifyCredential
+POST http://147.93.11.54:8082/api/credentials/verify
+Content-Type: text/plain
+
+{{createCredential.response.body.jwt}}
+
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 20 Aug 2025 15:38:17 GMT
+Connection: close
+
+{
+  "valid": true,
+  "credentialId": "urn:uuid:37b78056-423f-4a01-884b-46b3f25a6389",
+  "issuerDid": "did:web:anatel.gov.br",
+  "holderDid": "did:ethr:0x8c77a9501cccbb3e906ab3379ed592839b16ac47",
+  "status": "VALID",
+  "issuedAt": "2025-08-20T15:22:05.205535",
+  "expiresAt": "2025-12-15T23:59:59",
+  "errors": null,
+  "warnings": null
+}
+###
+
+### 6.2 Verificar StatusList após emissão
+# @name checkStatusListAfterIssue
+GET http://147.93.11.54:8082/api/statuslist/telefone-001/metadata
+
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 20 Aug 2025 15:38:30 GMT
+Connection: close
+
+{
+  "listId": "telefone-001",
+  "createdAt": "2025-08-20T15:18:56.153091",
+  "purpose": "revocation",
+  "validCredentials": 0,
+  "revokedCredentials": 0,
+  "totalCredentials": 0,
+  "uri": "https://idbra.example/status/telefone-001.json",
+  "version": 1,
+  "hash": "0x0xd1c1186747b129d56c73192a9d9e753234dde370b79f8f3fe699d144b7e94e79",
+  "issuer": "did:web:anatel.gov.br",
+  "updatedAt": "2025-08-20T15:18:56.153098"
+}
+
+###
+
+### ========================================
+### 7. GERENCIAMENTO DE DELEGADOS - PREPARAÇÃO
+### ========================================
+
+# ### 7.1 Criar wallet para operadora delegada
+# # @name createDelegateWallet
+# POST http://147.93.11.54:8082/api/wallets?name=WalletOperadora&description=Wallet Operadora de Telecomunicações
+# Content-Type: application/json
+
+# ###
+
+# ### 7.2 Conceder ISSUER_ROLE para wallet da operadora
+# # @name grantDelegateIssuerRole
+# POST http://147.93.11.54:8082/api/blockchain/grant-issuer-role/{{createDelegateWallet.response.body.address}}
+
+# ###
+
+### ========================================
+### 8. REVOGAÇÃO DE CREDENCIAL - TESTE DE REVOGAÇÃO
+### ========================================
+
+### 8.1 Revogar credencial de telefone (usando wallet do issuer)
+# @name revokeCredential
+POST http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/revoke
+
+###
+
+### 8.2 Verificar credencial revogada
+# @name verifyRevokedCredential
+POST http://147.93.11.54:8082/api/credentials/verify
+Content-Type: text/plain
+
+{{createCredential.response.body.jwt}}
+
+###
+
+### 8.3 Verificar StatusList após revogação
+# @name checkStatusListAfterRevoke
+GET http://147.93.11.54:8082/api/statuslist/telefone-001/metadata
+
+###
+
+### ========================================
+### 9. EMISSÃO DE SEGUNDA CREDENCIAL - PLANO CORPORATIVO
+### ========================================
+
+# ### 9.1 Criar credencial de plano corporativo (ISSUER → HOLDER)
+# # @name createCorporatePlan
+# POST http://147.93.11.54:8082/api/credentials
+# Content-Type: application/json
+
+# {
+#   "issuerDid": "did:web:anatel.gov.br",
+#   "holderDid": "did:ethr:{{createHolderWallet.response.body.address}}",
+#   "holderWalletAddress": "{{createHolderWallet.response.body.address}}",
+#   "credentialType": "CorporatePhoneCredential",
+#   "credentialSubject": {
+#     "id": "did:ethr:{{createHolderWallet.response.body.address}}",
+#     "corporateService": {
+#       "phoneNumber": "+5511912345678",
+#       "carrier": "Tim S.A.",
+#       "carrierCode": "TIM-BR",
+#       "lineType": "Móvel Corporativo",
+#       "activationDate": "2024-06-01",
+#       "plan": "Tim Black Empresarial 50GB",
+#       "status": "Ativo",
+#       "cnpjCompany": "12.345.678/0001-90",
+#       "companyName": "Tech Solutions Ltda",
+#       "responsibleCpf": "987.654.321-00",
+#       "responsibleName": "Maria Oliveira",
+#       "corporateAddress": {
+#         "street": "Av. Paulista, 1000",
+#         "city": "São Paulo",
+#         "state": "SP",
+#         "zipCode": "01310-100"
+#       },
+#       "verificationDate": "2024-12-20",
+#       "regulatoryCompliance": true,
+#       "corporateFeatures": ["Roaming Internacional", "Chamadas Ilimitadas", "Hotspot"]
+#     }
+#   },
+#   "expiresAt": "2025-06-01T23:59:59",
+#   "statusListId": "telefone-001",
+#   "issuerWalletAddress": "{{createIssuerWallet.response.body.address}}"
+# }
+
+# ###
+
+# ### 9.2 Verificar plano corporativo criado
+# # @name checkCorporatePlan
+# GET http://147.93.11.54:8082/api/credentials/{{createCorporatePlan.response.body.credentialId}}
+
+# ###
+
+### ========================================
+### 10. OPERAÇÕES DE CONSULTA - VERIFICAÇÃO DE DADOS
+### ========================================
+
+### 10.1 Listar todas as credenciais
+# @name listAllCredentials
+GET http://147.93.11.54:8082/api/credentials
+
+###
+
+### 10.2 Listar credenciais por emissor
+# @name listCredentialsByIssuer
+GET http://147.93.11.54:8082/api/credentials/issuer/did:web:anatel.gov.br
+
+###
+
+### 10.3 Listar credenciais por holder (cliente)
+# @name listCredentialsByHolder
+GET http://147.93.11.54:8082/api/credentials/holder/did:ethr:{{createHolderWallet.response.body.address}}
+
+###
+
+### 10.4 Listar credenciais por status
+# @name listCredentialsByStatus
+GET http://147.93.11.54:8082/api/credentials/status/ACTIVE
+
+###
+
+### ========================================
+### 11. MÉTRICAS DO SISTEMA - NOVA FUNCIONALIDADE
+### ========================================
+
+### 11.1 Obter métricas do sistema
+# @name getSystemMetrics
+GET http://147.93.11.54:8082/api/blockchain/metrics
+
+###
+
+### ========================================
+### 12. OPERAÇÕES DE STATUS LIST - GERENCIAMENTO
+### ========================================
+
+### 12.1 Listar todas as StatusLists
+# @name listAllStatusLists
+GET http://147.93.11.54:8082/api/statuslist
+
+###
+
+### 12.2 Obter StatusList como JSON
+# @name getStatusListJson
+GET http://147.93.11.54:8082/api/statuslist/telefone-001/json
+
+###
+
+### 12.3 Verificar status de uma credencial específica
+# @name checkCredentialStatus
+GET http://147.93.11.54:8082/api/statuslist/telefone-001/status/0
+
+###
+
+### ========================================
+### 13. OPERAÇÕES DE WALLET - GERENCIAMENTO
+### ========================================
+
+### 13.1 Listar todas as wallets
+# @name listAllWallets
+GET http://147.93.11.54:8082/api/wallets
+
+###
+
+### 13.2 Verificar saldo da wallet do issuer
+# @name checkIssuerWalletBalance
+GET http://147.93.11.54:8082/api/wallets/{{createIssuerWallet.response.body.address}}/balance
+
+###
+
+### 13.3 Verificar saldo da wallet do holder
+# @name checkHolderWalletBalance
+GET http://147.93.11.54:8082/api/wallets/{{createHolderWallet.response.body.address}}/balance
+
+###
+
+### 13.4 Verificar saldo da wallet da operadora
+# @name checkDelegateWalletBalance
+GET http://147.93.11.54:8082/api/wallets/{{createDelegateWallet.response.body.address}}/balance
+
+###
+
+### 13.5 Obter credenciais da wallet do issuer (com senha mestra)
+# @name getIssuerWalletCredentials
+GET http://147.93.11.54:8082/api/wallets/{{createIssuerWallet.response.body.address}}/credentials/master
+Content-Type: application/json
+
+{
+  "masterPassword": "custody_master_password_2024"
+}
+
+###
+
+### ========================================
+### 14. OPERAÇÕES ADMINISTRATIVAS - CONTROLE DO CONTRATO
+### ========================================
+
+### 14.1 Pausar contrato (apenas admin)
+# @name pauseContract
+POST http://147.93.11.54:8082/api/blockchain/pause
+
+###
+
+### 14.2 Verificar status após pausa
+# @name checkStatusAfterPause
+GET http://147.93.11.54:8082/api/blockchain/status
+
+###
+
+### 14.3 Despausar contrato (apenas admin)
+# @name unpauseContract
+POST http://147.93.11.54:8082/api/blockchain/unpause
+
+###
+
+### 14.4 Verificar status após despausar
+# @name checkStatusAfterUnpause
+GET http://147.93.11.54:8082/api/blockchain/status
+
+###
+
+### ========================================
+### 15. TESTE DE INTEGRIDADE - VERIFICAÇÃO FINAL
+### ========================================
+
+### 15.1 Verificar saúde final
+# @name finalHealthCheck
+GET http://147.93.11.54:8082/actuator/health
+
+###
+
+### 15.2 Verificar status blockchain final
+# @name finalBlockchainStatus
+GET http://147.93.11.54:8082/api/blockchain/status
+
+###
+
+### 15.3 Verificar métricas finais do sistema
+# @name finalSystemMetrics
+GET http://147.93.11.54:8082/api/blockchain/metrics
+
+###
+
+### 15.4 Verificar metadados finais da StatusList
+# @name finalStatusListMetadata
+GET http://147.93.11.54:8082/api/statuslist/telefone-001/metadata
+
+###
+
+### ========================================
+### 16. RESTAURAÇÃO DE CREDENCIAL - NOVA FUNCIONALIDADE
+### ========================================
+
+### 16.1 Restaurar credencial revogada (se suportado)
+# @name restoreCredential
+POST http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/restore
+
+###
+
+### 16.2 Verificar credencial após restauração
+# @name verifyRestoredCredential
+POST http://147.93.11.54:8082/api/credentials/verify
+Content-Type: text/plain
+
+{{createCredential.response.body.jwt}}
+
+###
+
+### ========================================
+### 17. VALIDAÇÃO DE SEPARAÇÃO DE WALLETS - TESTES ESPECÍFICOS
+### ========================================
+
+### 17.1 Verificar que holder não tem ISSUER_ROLE
+# @name checkHolderNoIssuerRole
+GET http://147.93.11.54:8082/api/blockchain/check-role/{{createHolderWallet.response.body.address}}
+
+###
+
+### 17.2 Verificar que issuer tem ISSUER_ROLE
+# @name confirmIssuerHasRole
+GET http://147.93.11.54:8082/api/blockchain/check-role/{{createIssuerWallet.response.body.address}}
+
+###
+
+### 17.3 Tentar emitir credencial com wallet do holder (deve falhar)
+# @name tryIssueWithHolder
+POST http://147.93.11.54:8082/api/credentials
+Content-Type: application/json
+
+{
+  "issuerDid": "did:web:anatel.gov.br",
+  "holderDid": "did:ethr:{{createHolderWallet.response.body.address}}",
+  "holderWalletAddress": "{{createHolderWallet.response.body.address}}",
+  "credentialType": "TestCredential",
+  "credentialSubject": {
+    "id": "did:ethr:{{createHolderWallet.response.body.address}}",
+    "test": "Este teste deve falhar"
+  },
+  "expiresAt": "2025-12-15T23:59:59",
+  "statusListId": "telefone-001",
+  "issuerWalletAddress": "{{createHolderWallet.response.body.address}}"
+}
+
+###
+

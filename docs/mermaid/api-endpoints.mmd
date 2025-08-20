@@ -1,0 +1,39 @@
+flowchart LR
+    subgraph "🏢 API Emissor (idbra-issuer-api)"
+        I1["POST /wallets<br/>Criar Carteira"]
+        I2["POST /dids<br/>Criar DID"]
+        I3["POST /status-lists<br/>Criar Lista Status"]
+        I4["POST /credentials<br/>Emitir Credencial"]
+        I5["POST /credentials/{id}/revoke<br/>Revogar Credencial"]
+    end
+
+    subgraph "👤 API Portador (idbra-holder-api)"
+        H1["POST /wallets<br/>Criar Carteira"]
+        H2["POST /dids<br/>Criar DID"]
+        H3["GET /credentials<br/>Listar Credenciais"]
+        H4["POST /credentials/verify<br/>Verificar Credencial"]
+    end
+
+    subgraph "🔐 API Custódia (idbra-custody)"
+        C1["POST /api/wallets<br/>Gestão Carteiras"]
+        C2["POST /api/dids<br/>Gestão DIDs"]
+        C3["POST /api/credentials<br/>Gestão Credenciais"]
+        C4["GET /api/{id}/revocation-status<br/>Status Revogação"]
+        C5["GET /api/status-lists/{id}<br/>Metadados Lista"]
+    end
+
+    subgraph "✅ API Verificador (verifier-api)"
+        V1["POST /verify<br/>Verificar Credencial"]
+        V2["GET /status/{id}<br/>Consultar Status"]
+        V3["POST /validate<br/>Validar Assinatura"]
+    end
+
+    classDef issuerStyle fill:#000,stroke:#fff,stroke-width:2px,color:#fff
+    classDef holderStyle fill:#333,stroke:#fff,stroke-width:2px,color:#fff
+    classDef custodyStyle fill:#666,stroke:#fff,stroke-width:2px,color:#fff
+    classDef verifierStyle fill:#999,stroke:#fff,stroke-width:2px,color:#fff
+
+    class I1,I2,I3,I4,I5 issuerStyle
+    class H1,H2,H3,H4 holderStyle
+    class C1,C2,C3,C4,C5 custodyStyle
+    class V1,V2,V3 verifierStyle

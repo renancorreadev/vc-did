@@ -1,0 +1,48 @@
+flowchart TD
+    subgraph "📊 Sistema Status List 2021"
+        subgraph "Criação da Lista"
+            C1["🏢 Emissor Cria<br/>Lista de Status"]
+            C2["📋 Gerar Bitstring<br/>Inicial (todos 0)"]
+            C3["🌐 Publicar Metadados<br/>URL Pública"]
+        end
+
+        subgraph "Estrutura dos Metadados"
+            M1["@context: StatusList2021<br/>id: URL da Lista<br/>type: StatusList2021Credential"]
+            M2["credentialSubject:<br/>• type: StatusList2021<br/>• statusPurpose: revocation<br/>• encodedList: bitstring"]
+        end
+
+        subgraph "Processo de Revogação"
+            R1["❌ Credencial Revogada<br/>statusListIndex: N"]
+            R2["🔄 Atualizar Bit N<br/>0 → 1 (revogada)"]
+            R3["📤 Publicar Lista<br/>Atualizada"]
+        end
+
+        subgraph "Verificação de Status"
+            V1["✅ Verificador Consulta<br/>URL da Lista"]
+            V2["📥 Baixar Metadados<br/>Decodificar Bitstring"]
+            V3["🔍 Verificar Bit N<br/>0=válida, 1=revogada"]
+        end
+    end
+
+    C1 --> C2
+    C2 --> C3
+    C3 --> M1
+    M1 --> M2
+
+    R1 --> R2
+    R2 --> R3
+    R3 --> M2
+
+    V1 --> V2
+    V2 --> V3
+    M2 --> V2
+
+    classDef creationStyle fill:#000,stroke:#fff,stroke-width:2px,color:#fff
+    classDef metadataStyle fill:#333,stroke:#fff,stroke-width:2px,color:#fff
+    classDef revocationStyle fill:#666,stroke:#fff,stroke-width:2px,color:#fff
+    classDef verificationStyle fill:#999,stroke:#fff,stroke-width:2px,color:#fff
+
+    class C1,C2,C3 creationStyle
+    class M1,M2 metadataStyle
+    class R1,R2,R3 revocationStyle
+    class V1,V2,V3 verificationStyle

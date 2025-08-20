@@ -1,0 +1,395 @@
+### =======================================================
+### FLUXO COMPLETO - CONTRATO IDBRA DID REGISTRY
+### Teste de Credenciais Educacionais com Novo Contrato Unificado
+### =======================================================
+
+### 1. Importar wallet administrativa no sistema (usando variável de ambiente)
+POST http://147.93.11.54:8082/api/wallets/import-admin
+
+### ========================================
+### 2. CRIAÇÃO DE WALLET - BASE PARA OPERAÇÕES
+### ========================================
+
+### 2.1 Criar wallet principal para testes
+# @name createMainWallet
+POST http://147.93.11.54:8082/api/wallets?name=WalletEducacao&description=Wallet para Credenciais Educacionais
+Content-Type: application/json
+
+###
+
+### 2.2 Verificar wallet criada
+# @name checkMainWallet
+GET http://147.93.11.54:8082/api/wallets/{{createMainWallet.response.body.address}}
+
+###
+
+### 2.3 Verificar se wallet tem ISSUER_ROLE
+# @name checkIssuerRole
+GET http://147.93.11.54:8082/api/blockchain/check-role/{{createMainWallet.response.body.address}}
+
+###
+
+### 2.4 Verificar se wallet tem DEFAULT_ADMIN_ROLE
+# @name checkAdminRole
+GET http://147.93.11.54:8082/api/blockchain/check-admin-role/{{createMainWallet.response.body.address}}
+
+###
+
+### 2.5 Conceder ISSUER_ROLE para a wallet (se necessário)
+# @name grantIssuerRole
+POST http://147.93.11.54:8082/api/blockchain/grant-issuer-role/{{createMainWallet.response.body.address}}
+
+###
+
+### 2.6 Verificar novamente se wallet tem ISSUER_ROLE após concessão
+# @name checkIssuerRoleAfterGrant
+GET http://147.93.11.54:8082/api/blockchain/check-role/{{createMainWallet.response.body.address}}
+
+###
+
+### ========================================
+### 3. GERENCIAMENTO DE DID - NOVA FUNCIONALIDADE
+### ========================================
+
+### 3.1 Criar DID para o estudante
+# @name createStudentDID
+POST http://147.93.11.54:8082/api/blockchain/did/create
+Content-Type: application/x-www-form-urlencoded
+
+identity={{createMainWallet.response.body.address}}&didDocument={"@context":["https://www.w3.org/ns/did/v1"],"id":"did:ethr:{{createMainWallet.response.body.address}}","verificationMethod":[{"id":"did:ethr:{{createMainWallet.response.body.address}}#controller","type":"EcdsaSecp256k1VerificationKey2019","controller":"did:ethr:{{createMainWallet.response.body.address}}","ethereumAddress":"{{createMainWallet.response.body.address}}"}]}
+
+###
+
+### ========================================
+### 4. CRIAÇÃO DE STATUS LIST - BASE PARA CREDENCIAIS
+### ========================================
+
+### 4.1 Criar StatusList para credenciais educacionais
+# @name createStatusList
+POST http://147.93.11.54:8082/api/statuslist?listId=educacao-001&uri=https://idbra.example/status/educacao-001.json&purpose=revocation&issuer=did:web:mec.gov.br&issuerWalletAddress={{createMainWallet.response.body.address}}
+
+###
+
+### 4.2 Verificar StatusList criada
+# @name checkStatusList
+GET http://147.93.11.54:8082/api/statuslist/educacao-001
+
+###
+
+### 4.3 Verificar metadados da StatusList
+# @name checkStatusListMetadata
+GET http://147.93.11.54:8082/api/statuslist/educacao-001/metadata
+
+###
+
+### ========================================
+### 5. EMISSÃO DE CREDENCIAL - TESTE PRINCIPAL
+### ========================================
+
+### 5.1 Criar credencial verificável de diploma
+# @name createCredential
+POST http://147.93.11.54:8082/api/credentials
+Content-Type: application/json
+
+{
+  "issuerDid": "did:web:mec.gov.br",
+  "holderDid": "did:ethr:{{createMainWallet.response.body.address}}",
+  "credentialType": "EducationalCredential",
+  "credentialSubject": {
+    "id": "did:ethr:{{createMainWallet.response.body.address}}",
+    "education": {
+      "degree": "Bacharelado em Ciência da Computação",
+      "institution": "Universidade de São Paulo",
+      "institutionCode": "USP-001",
+      "campus": "São Carlos",
+      "graduationDate": "2024-12-15",
+      "gpa": "8.5",
+      "honors": "Magna Cum Laude",
+      "studentId": "2020123456",
+      "courseDuration": "4 anos",
+      "specialization": "Inteligência Artificial",
+      "verificationDate": "2024-12-20"
+    }
+  },
+  "expiresAt": "2034-12-15T06:00:00",
+  "statusListId": "educacao-001",
+  "issuerWalletAddress": "{{createMainWallet.response.body.address}}"
+}
+
+###
+
+### 5.2 Verificar credencial criada
+# @name checkCredential
+GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}
+
+###
+
+### ========================================
+### 6. VERIFICAÇÃO DE CREDENCIAL - VALIDAÇÃO
+### ========================================
+
+### 6.1 Verificar credencial com JWT
+# @name verifyCredential
+POST http://147.93.11.54:8082/api/credentials/verify
+Content-Type: text/plain
+
+{{createCredential.response.body.jwt}}
+
+###
+
+### 6.2 Verificar StatusList após emissão
+# @name checkStatusListAfterIssue
+GET http://147.93.11.54:8082/api/statuslist/educacao-001/metadata
+
+###
+
+### ========================================
+### 7. GERENCIAMENTO DE DELEGADOS - PREPARAÇÃO
+### ========================================
+
+### 7.1 Criar wallet para instituição delegada
+# @name createDelegateWallet
+POST http://147.93.11.54:8082/api/wallets?name=WalletInstituicao&description=Wallet Instituição Educacional
+Content-Type: application/json
+
+###
+
+### 7.2 Conceder ISSUER_ROLE para wallet da instituição
+# @name grantDelegateIssuerRole
+POST http://147.93.11.54:8082/api/blockchain/grant-issuer-role/{{createDelegateWallet.response.body.address}}
+
+###
+
+### ========================================
+### 8. REVOGAÇÃO DE CREDENCIAL - TESTE DE REVOGAÇÃO
+### ========================================
+
+### 8.1 Revogar credencial educacional
+# @name revokeCredential
+POST http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/revoke
+
+###
+
+### 8.2 Verificar credencial revogada
+# @name verifyRevokedCredential
+POST http://147.93.11.54:8082/api/credentials/verify
+Content-Type: text/plain
+
+{{createCredential.response.body.jwt}}
+
+###
+
+### 8.3 Verificar StatusList após revogação
+# @name checkStatusListAfterRevoke
+GET http://147.93.11.54:8082/api/statuslist/educacao-001/metadata
+
+###
+
+### ========================================
+### 9. EMISSÃO DE SEGUNDA CREDENCIAL - CERTIFICADO
+### ========================================
+
+### 9.1 Criar credencial de certificação profissional
+# @name createCertification
+POST http://147.93.11.54:8082/api/credentials
+Content-Type: application/json
+
+{
+  "issuerDid": "did:web:mec.gov.br",
+  "holderDid": "did:ethr:{{createMainWallet.response.body.address}}",
+  "credentialType": "ProfessionalCertification",
+  "credentialSubject": {
+    "id": "did:ethr:{{createMainWallet.response.body.address}}",
+    "certification": {
+      "title": "Certificação em Blockchain e Criptomoedas",
+      "institution": "Instituto Nacional de Tecnologia",
+      "institutionCode": "INT-002",
+      "certificationId": "BLOCKCHAIN-2024-789",
+      "issueDate": "2024-11-30",
+      "validUntil": "2027-11-30",
+      "level": "Avançado",
+      "workload": "120 horas",
+      "skills": ["Smart Contracts", "DeFi", "NFTs", "Consensus Algorithms"],
+      "verificationDate": "2024-12-01"
+    }
+  },
+  "expiresAt": "2027-11-30T23:59:59",
+  "statusListId": "educacao-001",
+  "issuerWalletAddress": "{{createMainWallet.response.body.address}}"
+}
+
+###
+
+### 9.2 Verificar certificação criada
+# @name checkCertification
+GET http://147.93.11.54:8082/api/credentials/{{createCertification.response.body.credentialId}}
+
+###
+
+### ========================================
+### 10. OPERAÇÕES DE CONSULTA - VERIFICAÇÃO DE DADOS
+### ========================================
+
+### 10.1 Listar todas as credenciais
+# @name listAllCredentials
+GET http://147.93.11.54:8082/api/credentials
+
+###
+
+### 10.2 Listar credenciais por emissor
+# @name listCredentialsByIssuer
+GET http://147.93.11.54:8082/api/credentials/issuer/did:web:mec.gov.br
+
+###
+
+### 10.3 Listar credenciais por holder
+# @name listCredentialsByHolder
+GET http://147.93.11.54:8082/api/credentials/holder/did:ethr:{{createMainWallet.response.body.address}}
+
+###
+
+### 10.4 Listar credenciais por status
+# @name listCredentialsByStatus
+GET http://147.93.11.54:8082/api/credentials/status/ACTIVE
+
+###
+
+### ========================================
+### 11. MÉTRICAS DO SISTEMA - NOVA FUNCIONALIDADE
+### ========================================
+
+### 11.1 Obter métricas do sistema
+# @name getSystemMetrics
+GET http://147.93.11.54:8082/api/blockchain/metrics
+
+###
+
+### ========================================
+### 12. OPERAÇÕES DE STATUS LIST - GERENCIAMENTO
+### ========================================
+
+### 12.1 Listar todas as StatusLists
+# @name listAllStatusLists
+GET http://147.93.11.54:8082/api/statuslist
+
+###
+
+### 12.2 Obter StatusList como JSON
+# @name getStatusListJson
+GET http://147.93.11.54:8082/api/statuslist/educacao-001/json
+
+###
+
+### 12.3 Verificar status de uma credencial específica
+# @name checkCredentialStatus
+GET http://147.93.11.54:8082/api/statuslist/educacao-001/status/0
+
+###
+
+### ========================================
+### 13. OPERAÇÕES DE WALLET - GERENCIAMENTO
+### ========================================
+
+### 13.1 Listar todas as wallets
+# @name listAllWallets
+GET http://147.93.11.54:8082/api/wallets
+
+###
+
+### 13.2 Verificar saldo da wallet principal
+# @name checkWalletBalance
+GET http://147.93.11.54:8082/api/wallets/{{createMainWallet.response.body.address}}/balance
+
+###
+
+### 13.3 Verificar saldo da wallet da instituição
+# @name checkDelegateWalletBalance
+GET http://147.93.11.54:8082/api/wallets/{{createDelegateWallet.response.body.address}}/balance
+
+###
+
+### 13.4 Obter credenciais da wallet (com senha mestra)
+# @name getWalletCredentials
+GET http://147.93.11.54:8082/api/wallets/{{createMainWallet.response.body.address}}/credentials/master
+Content-Type: application/json
+
+{
+  "masterPassword": "custody_master_password_2024"
+}
+
+###
+
+### ========================================
+### 14. OPERAÇÕES ADMINISTRATIVAS - CONTROLE DO CONTRATO
+### ========================================
+
+### 14.1 Pausar contrato (apenas admin)
+# @name pauseContract
+POST http://147.93.11.54:8082/api/blockchain/pause
+
+###
+
+### 14.2 Verificar status após pausa
+# @name checkStatusAfterPause
+GET http://147.93.11.54:8082/api/blockchain/status
+
+###
+
+### 14.3 Despausar contrato (apenas admin)
+# @name unpauseContract
+POST http://147.93.11.54:8082/api/blockchain/unpause
+
+###
+
+### 14.4 Verificar status após despausar
+# @name checkStatusAfterUnpause
+GET http://147.93.11.54:8082/api/blockchain/status
+
+###
+
+### ========================================
+### 15. TESTE DE INTEGRIDADE - VERIFICAÇÃO FINAL
+### ========================================
+
+### 15.1 Verificar saúde final
+# @name finalHealthCheck
+GET http://147.93.11.54:8082/actuator/health
+
+###
+
+### 15.2 Verificar status blockchain final
+# @name finalBlockchainStatus
+GET http://147.93.11.54:8082/api/blockchain/status
+
+###
+
+### 15.3 Verificar métricas finais do sistema
+# @name finalSystemMetrics
+GET http://147.93.11.54:8082/api/blockchain/metrics
+
+###
+
+### 15.4 Verificar metadados finais da StatusList
+# @name finalStatusListMetadata
+GET http://147.93.11.54:8082/api/statuslist/educacao-001/metadata
+
+###
+
+### ========================================
+### 16. RESTAURAÇÃO DE CREDENCIAL - NOVA FUNCIONALIDADE
+### ========================================
+
+### 16.1 Restaurar credencial revogada (se suportado)
+# @name restoreCredential
+POST http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/restore
+
+###
+
+### 16.2 Verificar credencial após restauração
+# @name verifyRestoredCredential
+POST http://147.93.11.54:8082/api/credentials/verify
+Content-Type: text/plain
+
+{{createCredential.response.body.jwt}}
+
+###

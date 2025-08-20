@@ -1,0 +1,35 @@
+sequenceDiagram
+    participant P as 👤 Portador
+    participant V as ✅ Verificador
+    participant API as 📡 API Custódia
+    participant BC as ⛓️ Blockchain
+    participant SL as 📊 Status List
+
+    Note over P,SL: Processo Completo de Verificação
+
+    P->>V: 1️⃣ Apresentar Credencial JWT
+
+    V->>V: 2️⃣ Validar Estrutura JWT
+    Note over V: 2.1 Verificar header<br/>2.2 Validar payload<br/>2.3 Checar formato
+
+    V->>API: 3️⃣ Verificar Assinatura
+    API->>BC: 3.1 Buscar Chave Pública do Emissor
+    BC-->>API: ✅ Chave Pública
+    API-->>V: ✅ Assinatura Válida
+
+    V->>SL: 4️⃣ Consultar Status List
+    Note over V,SL: 4.1 Extrair statusListCredential<br/>4.2 Buscar statusListIndex
+    SL-->>V: 📊 Metadados da Lista
+
+    V->>V: 5️⃣ Verificar Status Revogação
+    Note over V: 5.1 Decodificar bitstring<br/>5.2 Verificar bit na posição N
+
+    alt Credencial Válida (bit = 0)
+        V-->>P: 6️⃣ ✅ Credencial VÁLIDA
+    else Credencial Revogada (bit = 1)
+        V->>API: 7️⃣ Buscar Detalhes Revogação
+        API->>BC: 7.1 getCredentialRevocation()
+        BC-->>API: 📋 Detalhes Completos
+        API-->>V: 📋 Motivo + Timestamp
+        V-->>P: 8️⃣ ❌ Credencial REVOGADA
+    end

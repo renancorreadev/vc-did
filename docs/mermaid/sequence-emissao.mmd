@@ -1,0 +1,39 @@
+sequenceDiagram
+    participant E as 🏢 Emissor
+    participant API as 📡 API Custódia
+    participant BC as ⛓️ Blockchain
+    participant P as 👤 Portador
+
+    Note over E,P: Processo de Emissão de Credencial Verificável
+
+    E->>API: 1️⃣ Criar Carteira Emissor
+    API-->>E: ✅ Carteira Criada
+
+    E->>API: 2️⃣ Criar DID Emissor
+    API->>BC: 2.1 Registrar DID na Blockchain
+    BC-->>API: ✅ DID Registrado
+    API-->>E: ✅ DID do Emissor
+
+    P->>API: 3️⃣ Criar Carteira Portador
+    API-->>P: ✅ Carteira Criada
+
+    P->>API: 4️⃣ Criar DID Portador
+    API->>BC: 4.1 Registrar DID na Blockchain
+    BC-->>API: ✅ DID Registrado
+    API-->>P: ✅ DID do Portador
+
+    E->>API: 5️⃣ Criar Lista de Status
+    API-->>E: ✅ Lista de Status Criada
+
+    E->>API: 6️⃣ Emitir Credencial
+    Note over API: 6.1 Gerar JWT/JWS
+    API->>BC: 6.2 Registrar Hash da Credencial
+    BC-->>API: ✅ Credencial Registrada
+    API-->>E: ✅ Credencial Verificável
+
+    E->>P: 7️⃣ Entregar Credencial
+
+    P->>API: 8️⃣ Verificar Credencial
+    API->>BC: 8.1 Consultar Status
+    BC-->>API: ✅ Status Válido
+    API-->>P: ✅ Credencial Válida

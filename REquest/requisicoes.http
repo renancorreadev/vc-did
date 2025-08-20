@@ -1,0 +1,400 @@
+### ========================================
+### FLUXO COMPLETO DE CREDENCIAL TELEFÔNICA - DADOS NOVOS
+### ========================================
+
+### 1. Importar wallet administrativa no sistema
+POST http://147.93.11.54:8082/api/wallets/import-admin
+
+### ========================================
+### 2. CRIAÇÃO DE WALLETS - ISSUER E HOLDER SEPARADOS
+### ========================================
+
+### 2.1 Criar wallet do ISSUER (TIM/Operadora)
+# @name createIssuerWallet
+POST http://147.93.11.54:8082/api/wallets?name=WalletTIM&description=Wallet Oficial TIM para Emissão de Credenciais
+Content-Type: application/json
+
+
+{
+  "address": "0x7f78206801e6609baa75eaad60d0cd10dfaf7946",
+  "name": "WalletTIM",
+  "description": "Wallet Oficial TIM para Emissão de Credenciais",
+  "createdAt": "2025-08-20T15:47:23.972178174",
+  "updatedAt": "2025-08-20T15:47:23.972200524",
+  "active": true
+}
+
+### 2.2 Criar wallet do HOLDER (Cliente Final)
+# @name createHolderWallet
+POST http://147.93.11.54:8082/api/wallets?name=WalletClienteMaria&description=Wallet da Cliente Maria para Receber Credenciais
+Content-Type: application/json
+
+
+{
+  "address": "0x257c302a6e3cfc1ea8e1661254f428d351c41a1c",
+  "name": "WalletClienteMaria",
+  "description": "Wallet da Cliente Maria para Receber Credenciais",
+  "createdAt": "2025-08-20T15:47:39.140714572",
+  "updatedAt": "2025-08-20T15:47:39.140723043",
+  "active": true
+}
+
+
+### 2.3 Verificar wallet do issuer criada
+# @name checkIssuerWallet
+GET http://147.93.11.54:8082/api/wallets/{{createIssuerWallet.response.body.address}}
+
+### 2.4 Verificar wallet do holder criada
+# @name checkHolderWallet
+GET http://147.93.11.54:8082/api/wallets/{{createHolderWallet.response.body.address}}
+
+### 2.5 Verificar se wallet do issuer tem ISSUER_ROLE
+# @name checkIssuerRole
+GET http://147.93.11.54:8082/api/blockchain/check-role/{{createIssuerWallet.response.body.address}}
+
+### 2.6 Conceder ISSUER_ROLE para a wallet da TIM (se necessário)
+# @name grantIssuerRole
+POST http://147.93.11.54:8082/api/blockchain/grant-issuer-role/{{createIssuerWallet.response.body.address}}
+
+### 2.7 Verificar novamente se wallet do issuer tem ISSUER_ROLE após concessão
+# @name checkIssuerRoleAfterGrant
+GET http://147.93.11.54:8082/api/blockchain/check-role/{{createIssuerWallet.response.body.address}}
+
+
+{
+  "walletAddress": "0x7f78206801e6609baa75eaad60d0cd10dfaf7946",
+  "hasIssuerRole": true,
+  "timestamp": "2025-08-20T15:48:08.454542915",
+  "didRegistry": true
+}
+
+### ========================================
+### 3. GERENCIAMENTO DE DID - CRIAÇÃO DE IDENTIDADES
+### ========================================
+
+### 3.1 Criar DID para o usuário holder (cliente Maria)
+# @name createHolderDID
+POST http://147.93.11.54:8082/api/blockchain/did/create
+Content-Type: application/x-www-form-urlencoded
+
+identity={{createHolderWallet.response.body.address}}&didDocument={"@context":["https://www.w3.org/ns/did/v1"],"id":"did:ethr:{{createHolderWallet.response.body.address}}","verificationMethod":[{"id":"did:ethr:{{createHolderWallet.response.body.address}}#controller","type":"EcdsaSecp256k1VerificationKey2019","controller":"did:ethr:{{createHolderWallet.response.body.address}}","ethereumAddress":"{{createHolderWallet.response.body.address}}"}]}
+
+
+
+{
+  "success": true,
+  "timestamp": "2025-08-20T15:48:22.444894664",
+  "identity": "0x257c302a6e3cfc1ea8e1661254f428d351c41a1c",
+  "transactionHash": "0x38fe3621ba9d877df5614109477eb5a9d77d02c494d38448230050eee43d222a"
+}
+
+
+### 3.2 Criar DID para o issuer (TIM)
+# @name createIssuerDID
+POST http://147.93.11.54:8082/api/blockchain/did/create
+Content-Type: application/x-www-form-urlencoded
+
+identity={{createIssuerWallet.response.body.address}}&didDocument={"@context":["https://www.w3.org/ns/did/v1"],"id":"did:ethr:{{createIssuerWallet.response.body.address}}","verificationMethod":[{"id":"did:ethr:{{createIssuerWallet.response.body.address}}#controller","type":"EcdsaSecp256k1VerificationKey2019","controller":"did:ethr:{{createIssuerWallet.response.body.address}}","ethereumAddress":"{{createIssuerWallet.response.body.address}}"}]}
+
+{
+  "success": true,
+  "timestamp": "2025-08-20T15:48:37.192369180",
+  "identity": "0x7f78206801e6609baa75eaad60d0cd10dfaf7946",
+  "transactionHash": "0x8138aecd8cfd1d09ce3ea0d4248ddfea51e85ed9858fc6919c669648754942fb"
+}
+
+
+### ========================================
+### 4. CRIAÇÃO DE STATUS LIST - BASE PARA CREDENCIAIS
+### ========================================
+
+### 4.1 Criar StatusList para credenciais de telefone TIM
+# @name createStatusList
+POST http://147.93.11.54:8082/api/statuslist?listId=telefone-tim-002&uri=https://idbra.example/status/telefone-tim-002.json&purpose=revocation&issuer=did:web:tim.com.br&issuerWalletAddress={{createIssuerWallet.response.body.address}}
+
+{
+  "id": 2,
+  "listId": "telefone-tim-002",
+  "uri": "https://idbra.example/status/telefone-tim-002.json",
+  "hash": "0x0x8af66de0cd2d95c39e32823bbcd882660ce618780d680587953c5d2d0211f930",
+  "version": 1,
+  "purpose": "revocation",
+  "issuer": "did:web:tim.com.br",
+  "createdAt": "2025-08-20T15:48:45.98876175",
+  "updatedAt": "2025-08-20T15:48:45.98877163",
+  "statusListData": "{\"id\":\"https://idbra.example/status/telefone-tim-002.json\",\"type\":\"StatusList2021Credential\",\"issuer\":\"did:web:tim.com.br\",\"issued\":\"2025-08-20T15:48:45.984155095\",\"validFrom\":\"2025-08-20T15:48:45.984155095\",\"validUntil\":\"2035-08-20T15:48:45.984879835\",\"credentialSubject\":\"{id=https://idbra.example/status/telefone-tim-002.json, type=StatusList2021, encodedList=, statusPurpose=revocation}\",\"statusList\":[],\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://w3id.org/vc/status-list/2021/v1\"]}",
+  "issuerWalletAddress": "0x7f78206801e6609baa75eaad60d0cd10dfaf7946"
+}
+
+
+### 4.2 Verificar StatusList criada
+# @name checkStatusList
+GET http://147.93.11.54:8082/api/statuslist
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Wed, 20 Aug 2025 15:48:58 GMT
+Connection: close
+
+[
+  {
+    "id": 1,
+    "listId": "telefone-001",
+    "uri": "https://idbra.example/status/telefone-001.json",
+    "hash": "0x0xd1c1186747b129d56c73192a9d9e753234dde370b79f8f3fe699d144b7e94e79",
+    "version": 1,
+    "purpose": "revocation",
+    "issuer": "did:web:anatel.gov.br",
+    "createdAt": "2025-08-20T15:18:56.153091",
+    "updatedAt": "2025-08-20T15:18:56.153098",
+    "statusListData": "{\"id\":\"https://idbra.example/status/telefone-001.json\",\"type\":\"StatusList2021Credential\",\"issuer\":\"did:web:anatel.gov.br\",\"issued\":\"2025-08-20T15:18:56.149346159\",\"validFrom\":\"2025-08-20T15:18:56.149346159\",\"validUntil\":\"2035-08-20T15:18:56.14973373\",\"credentialSubject\":\"{statusPurpose=revocation, encodedList=, type=StatusList2021, id=https://idbra.example/status/telefone-001.json}\",\"statusList\":[],\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://w3id.org/vc/status-list/2021/v1\"]}",
+    "issuerWalletAddress": "0x88fe625254468b5edcc66f6502052e2c4d7be6a3"
+  },
+  {
+    "id": 2,
+    "listId": "telefone-tim-002",
+    "uri": "https://idbra.example/status/telefone-tim-002.json",
+    "hash": "0x0x8af66de0cd2d95c39e32823bbcd882660ce618780d680587953c5d2d0211f930",
+    "version": 1,
+    "purpose": "revocation",
+    "issuer": "did:web:tim.com.br",
+    "createdAt": "2025-08-20T15:48:45.988762",
+    "updatedAt": "2025-08-20T15:48:45.988772",
+    "statusListData": "{\"id\":\"https://idbra.example/status/telefone-tim-002.json\",\"type\":\"StatusList2021Credential\",\"issuer\":\"did:web:tim.com.br\",\"issued\":\"2025-08-20T15:48:45.984155095\",\"validFrom\":\"2025-08-20T15:48:45.984155095\",\"validUntil\":\"2035-08-20T15:48:45.984879835\",\"credentialSubject\":\"{id=https://idbra.example/status/telefone-tim-002.json, type=StatusList2021, encodedList=, statusPurpose=revocation}\",\"statusList\":[],\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://w3id.org/vc/status-list/2021/v1\"]}",
+    "issuerWalletAddress": "0x7f78206801e6609baa75eaad60d0cd10dfaf7946"
+  }
+]
+
+
+
+### 4.3 Verificar metadados da StatusList
+# @name checkStatusListMetadata
+GET http://147.93.11.54:8082/api/statuslist/telefone-tim-002/metadata
+
+
+{
+  "listId": "telefone-tim-002",
+  "createdAt": "2025-08-20T15:48:45.988762",
+  "purpose": "revocation",
+  "validCredentials": 0,
+  "revokedCredentials": 0,
+  "totalCredentials": 0,
+  "uri": "https://idbra.example/status/telefone-tim-002.json",
+  "version": 1,
+  "hash": "0x0x8af66de0cd2d95c39e32823bbcd882660ce618780d680587953c5d2d0211f930",
+  "issuer": "did:web:tim.com.br",
+  "updatedAt": "2025-08-20T15:48:45.988772"
+}
+
+
+### ========================================
+### 5. EMISSÃO DE CREDENCIAL - TESTE PRINCIPAL COM WALLETS SEPARADAS
+### ========================================
+
+### 5.1 Criar credencial verificável de linha telefônica TIM (ISSUER → HOLDER)
+# @name createCredential
+POST http://147.93.11.54:8082/api/credentials
+Content-Type: application/json
+
+{
+  "issuerDid": "did:web:tim.com.br",
+  "holderDid": "did:ethr:{{createHolderWallet.response.body.address}}",
+  "holderWalletAddress": "{{createHolderWallet.response.body.address}}",
+  "credentialType": "PhoneLineCredential",
+  "credentialSubject": {
+    "id": "did:ethr:{{createHolderWallet.response.body.address}}",
+    "phoneService": {
+      "phoneNumber": "+5521987123456",
+      "carrier": "TIM S.A.",
+      "carrierCode": "TIM-BR",
+      "lineType": "Móvel Pré-Pago",
+      "activationDate": "2024-03-10",
+      "plan": "TIM Controle 20GB",
+      "status": "Ativo",
+      "cpfHolder": "987.654.321-11",
+      "holderName": "Maria Oliveira Costa",
+      "address": {
+        "street": "Avenida Copacabana, 456",
+        "city": "Rio de Janeiro",
+        "state": "RJ",
+        "zipCode": "22070-001"
+      },
+      "verificationDate": "2024-12-21",
+      "regulatoryCompliance": true
+    }
+  },
+  "expiresAt": "2026-03-10T23:59:59",
+  "statusListId": "telefone-tim-002",
+  "issuerWalletAddress": "{{createIssuerWallet.response.body.address}}"
+}
+
+
+{
+  "jwt": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDI1N2MzMDJhNmUzY2ZjMWVhOGUxNjYxMjU0ZjQyOGQzNTFjNDFhMWMiLCJpc3MiOiJkaWQ6d2ViOnRpbS5jb20uYnIiLCJleHAiOjE3NzMxODcxOTksImlhdCI6MTc1NTcwNTEwNywidmMiOnsiQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy9leGFtcGxlcy92MSJdLCJjcmVkZW50aWFsU3RhdHVzIjp7InR5cGUiOiJTdGF0dXNMaXN0MjAyMUVudHJ5Iiwic3RhdHVzUHVycG9zZSI6InJldm9jYXRpb24iLCJzdGF0dXNMaXN0SW5kZXgiOjEsImlkIjoiaHR0cHM6Ly9pZGJyYS5leGFtcGxlL3N0YXR1cy90ZWxlZm9uZS10aW0tMDAyLmpzb24jMSIsInN0YXR1c0xpc3RDcmVkZW50aWFsIjoiaHR0cHM6Ly9pZGJyYS5leGFtcGxlL3N0YXR1cy90ZWxlZm9uZS10aW0tMDAyLmpzb24ifSwidHlwZSI6WyJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsIlBob25lTGluZUNyZWRlbnRpYWwiXSwiY3JlZGVudGlhbFN1YmplY3QiOnsiaWQiOiJkaWQ6ZXRocjoweDI1N2MzMDJhNmUzY2ZjMWVhOGUxNjYxMjU0ZjQyOGQzNTFjNDFhMWMiLCJwaG9uZVNlcnZpY2UiOnsicGhvbmVOdW1iZXIiOiIrNTUyMTk4NzEyMzQ1NiIsImNhcnJpZXIiOiJUSU0gUy5BLiIsImNhcnJpZXJDb2RlIjoiVElNLUJSIiwibGluZVR5cGUiOiJNw7N2ZWwgUHLDqS1QYWdvIiwiYWN0aXZhdGlvbkRhdGUiOiIyMDI0LTAzLTEwIiwicGxhbiI6IlRJTSBDb250cm9sZSAyMEdCIiwic3RhdHVzIjoiQXRpdm8iLCJjcGZIb2xkZXIiOiI5ODcuNjU0LjMyMS0xMSIsImhvbGRlck5hbWUiOiJNYXJpYSBPbGl2ZWlyYSBDb3N0YSIsImFkZHJlc3MiOnsic3RyZWV0IjoiQXZlbmlkYSBDb3BhY2FiYW5hLCA0NTYiLCJjaXR5IjoiUmlvIGRlIEphbmVpcm8iLCJzdGF0ZSI6IlJKIiwiemlwQ29kZSI6IjIyMDcwLTAwMSJ9LCJ2ZXJpZmljYXRpb25EYXRlIjoiMjAyNC0xMi0yMSIsInJlZ3VsYXRvcnlDb21wbGlhbmNlIjp0cnVlfX19LCJqdGkiOiJ1cm46dXVpZDowY2ZlNmMzZi1hMGJiLTRlNmMtYjliOS1kOTA5MmM3MWViYmUifQ.simulated_signature",
+  "credentialId": "urn:uuid:0cfe6c3f-a0bb-4e6c-b9b9-d9092c71ebbe",
+  "success": true,
+  "timestamp": "2025-08-20T15:51:49.414866864"
+}
+
+### 5.2 Verificar credencial criada no blockchain
+# @name checkCredentialBlockchain
+GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/exists
+Content-Type: application/json
+
+{
+  "message": "Credencial existe no blockchain",
+  "credentialId": "urn:uuid:0cfe6c3f-a0bb-4e6c-b9b9-d9092c71ebbe",
+  "exists": true,
+  "timestamp": "2025-08-20T15:52:27.491587640"
+}
+
+### 5.3 Verificar credencial criada no sistema
+# @name checkCredential
+GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}
+
+{
+  "id": 2,
+  "credentialId": "urn:uuid:0cfe6c3f-a0bb-4e6c-b9b9-d9092c71ebbe",
+  "issuerDid": "did:web:tim.com.br",
+  "holderDid": "did:ethr:0x257c302a6e3cfc1ea8e1661254f428d351c41a1c",
+  "credentialData": "{\"sub\":\"did:ethr:0x257c302a6e3cfc1ea8e1661254f428d351c41a1c\",\"iss\":\"did:web:tim.com.br\",\"exp\":1773187199,\"iat\":1755705107,\"vc\":{\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://www.w3.org/2018/credentials/examples/v1\"],\"credentialStatus\":{\"type\":\"StatusList2021Entry\",\"statusPurpose\":\"revocation\",\"statusListIndex\":1,\"id\":\"https://idbra.example/status/telefone-tim-002.json#1\",\"statusListCredential\":\"https://idbra.example/status/telefone-tim-002.json\"},\"type\":[\"VerifiableCredential\",\"PhoneLineCredential\"],\"credentialSubject\":{\"id\":\"did:ethr:0x257c302a6e3cfc1ea8e1661254f428d351c41a1c\",\"phoneService\":{\"phoneNumber\":\"+5521987123456\",\"carrier\":\"TIM S.A.\",\"carrierCode\":\"TIM-BR\",\"lineType\":\"Móvel Pré-Pago\",\"activationDate\":\"2024-03-10\",\"plan\":\"TIM Controle 20GB\",\"status\":\"Ativo\",\"cpfHolder\":\"987.654.321-11\",\"holderName\":\"Maria Oliveira Costa\",\"address\":{\"street\":\"Avenida Copacabana, 456\",\"city\":\"Rio de Janeiro\",\"state\":\"RJ\",\"zipCode\":\"22070-001\"},\"verificationDate\":\"2024-12-21\",\"regulatoryCompliance\":true}}},\"jti\":\"urn:uuid:0cfe6c3f-a0bb-4e6c-b9b9-d9092c71ebbe\"}",
+  "statusListId": "telefone-tim-002",
+  "statusListIndex": 1,
+  "status": "VALID",
+  "issuedAt": "2025-08-20T15:51:47.234267",
+  "expiresAt": "2026-03-10T23:59:59",
+  "createdAt": "2025-08-20T15:51:47.234234",
+  "updatedAt": "2025-08-20T15:51:47.234246",
+  "jwsToken": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDI1N2MzMDJhNmUzY2ZjMWVhOGUxNjYxMjU0ZjQyOGQzNTFjNDFhMWMiLCJpc3MiOiJkaWQ6d2ViOnRpbS5jb20uYnIiLCJleHAiOjE3NzMxODcxOTksImlhdCI6MTc1NTcwNTEwNywidmMiOnsiQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy9leGFtcGxlcy92MSJdLCJjcmVkZW50aWFsU3RhdHVzIjp7InR5cGUiOiJTdGF0dXNMaXN0MjAyMUVudHJ5Iiwic3RhdHVzUHVycG9zZSI6InJldm9jYXRpb24iLCJzdGF0dXNMaXN0SW5kZXgiOjEsImlkIjoiaHR0cHM6Ly9pZGJyYS5leGFtcGxlL3N0YXR1cy90ZWxlZm9uZS10aW0tMDAyLmpzb24jMSIsInN0YXR1c0xpc3RDcmVkZW50aWFsIjoiaHR0cHM6Ly9pZGJyYS5leGFtcGxlL3N0YXR1cy90ZWxlZm9uZS10aW0tMDAyLmpzb24ifSwidHlwZSI6WyJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsIlBob25lTGluZUNyZWRlbnRpYWwiXSwiY3JlZGVudGlhbFN1YmplY3QiOnsiaWQiOiJkaWQ6ZXRocjoweDI1N2MzMDJhNmUzY2ZjMWVhOGUxNjYxMjU0ZjQyOGQzNTFjNDFhMWMiLCJwaG9uZVNlcnZpY2UiOnsicGhvbmVOdW1iZXIiOiIrNTUyMTk4NzEyMzQ1NiIsImNhcnJpZXIiOiJUSU0gUy5BLiIsImNhcnJpZXJDb2RlIjoiVElNLUJSIiwibGluZVR5cGUiOiJNw7N2ZWwgUHLDqS1QYWdvIiwiYWN0aXZhdGlvbkRhdGUiOiIyMDI0LTAzLTEwIiwicGxhbiI6IlRJTSBDb250cm9sZSAyMEdCIiwic3RhdHVzIjoiQXRpdm8iLCJjcGZIb2xkZXIiOiI5ODcuNjU0LjMyMS0xMSIsImhvbGRlck5hbWUiOiJNYXJpYSBPbGl2ZWlyYSBDb3N0YSIsImFkZHJlc3MiOnsic3RyZWV0IjoiQXZlbmlkYSBDb3BhY2FiYW5hLCA0NTYiLCJjaXR5IjoiUmlvIGRlIEphbmVpcm8iLCJzdGF0ZSI6IlJKIiwiemlwQ29kZSI6IjIyMDcwLTAwMSJ9LCJ2ZXJpZmljYXRpb25EYXRlIjoiMjAyNC0xMi0yMSIsInJlZ3VsYXRvcnlDb21wbGlhbmNlIjp0cnVlfX19LCJqdGkiOiJ1cm46dXVpZDowY2ZlNmMzZi1hMGJiLTRlNmMtYjliOS1kOTA5MmM3MWViYmUifQ.simulated_signature",
+  "issuerWalletAddress": "0x7f78206801e6609baa75eaad60d0cd10dfaf7946"
+}
+
+
+### 5.4 Verificar status de revogação da credencial
+# @name checkRevocationStatus
+GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/revocation-status
+Content-Type: application/json
+
+
+{
+  "revocationRecord": {
+    "credentialId": null,
+    "revoker": null,
+    "revokedAt": null,
+    "reason": null,
+    "createdAt": null,
+    "updatedAt": null,
+    "revoked": false
+  },
+  "credentialId": "urn:uuid:0cfe6c3f-a0bb-4e6c-b9b9-d9092c71ebbe",
+  "isRevoked": false,
+  "timestamp": "2025-08-20T15:53:08.736315783"
+}
+
+
+### ========================================
+### 6. VERIFICAÇÃO DE CREDENCIAL - VALIDAÇÃO
+### ========================================
+
+### 6.1 Verificar credencial com JWT
+# @name verifyCredential
+POST http://147.93.11.54:8082/api/credentials/verify
+Content-Type: text/plain
+
+{{createCredential.response.body.jwt}}
+
+{
+  "valid": true,
+  "credentialId": "urn:uuid:0cfe6c3f-a0bb-4e6c-b9b9-d9092c71ebbe",
+  "issuerDid": "did:web:tim.com.br",
+  "holderDid": "did:ethr:0x257c302a6e3cfc1ea8e1661254f428d351c41a1c",
+  "status": "VALID",
+  "issuedAt": "2025-08-20T15:51:47.234267",
+  "expiresAt": "2026-03-10T23:59:59",
+  "errors": null,
+  "warnings": null
+}
+
+
+### 6.2 Verificar StatusList após emissão
+# @name checkStatusListAfterIssue
+GET http://147.93.11.54:8082/api/statuslist/telefone-tim-002/metadata
+
+{
+  "listId": "telefone-tim-002",
+  "createdAt": "2025-08-20T15:48:45.988762",
+  "purpose": "revocation",
+  "validCredentials": 0,
+  "revokedCredentials": 0,
+  "totalCredentials": 0,
+  "uri": "https://idbra.example/status/telefone-tim-002.json",
+  "version": 1,
+  "hash": "0x0x8af66de0cd2d95c39e32823bbcd882660ce618780d680587953c5d2d0211f930",
+  "issuer": "did:web:tim.com.br",
+  "updatedAt": "2025-08-20T15:48:45.988772"
+}
+
+
+### ========================================
+### 7. REVOGAÇÃO DE CREDENCIAL - TESTE DE REVOGAÇÃO
+### ========================================
+
+### 7.1 Revogar credencial emitida
+# @name revokeCredential
+POST http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/revoke
+Content-Type: application/json
+
+### 7.2 Verificar credencial revogada
+# @name verifyRevokedCredential
+POST http://147.93.11.54:8082/api/credentials/verify
+Content-Type: text/plain
+
+{{createCredential.response.body.jwt}}
+
+{
+  "success": true,
+  "message": "Credencial revogada com sucesso",
+  "timestamp": "2025-08-20T15:53:52.923316704",
+  "credentialId": "urn:uuid:0cfe6c3f-a0bb-4e6c-b9b9-d9092c71ebbe",
+  "revoked": true
+}
+
+### 7.3 Verificar StatusList após revogação
+# @name checkStatusListAfterRevoke
+GET http://147.93.11.54:8082/api/statuslist/telefone-tim-002/metadata
+
+{
+  "listId": "telefone-tim-002",
+  "createdAt": "2025-08-20T15:53:48.518651",
+  "purpose": "revocation",
+  "validCredentials": 1,
+  "revokedCredentials": 1,
+  "totalCredentials": 2,
+  "uri": "https://idbra.example/status/telefone-tim-002.json",
+  "version": 2,
+  "hash": "0x0xe6b446cd5e9d003e55cb3c4e5f39a188c360e8ff957d2e81522dbe403ad8f780",
+  "issuer": "did:web:tim.com.br",
+  "updatedAt": "2025-08-20T15:53:48.518659"
+}
+
+### 7.4 Verificar status de revogação após revogação
+# @name checkRevocationStatusAfterRevoke
+GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/revocation-status
+Content-Type: application/json
+
+{
+  "isRevoked": true,
+  "timestamp": "2025-08-20T15:59:41.364760590",
+  "revocationRecord": {
+    "credentialId": "urn:uuid:0cfe6c3f-a0bb-4e6c-b9b9-d9092c71ebbe",
+    "revoker": "0x7f78206801e6609baa75eaad60d0cd10dfaf7946",
+    "revokedAt": 1755705230,
+    "reason": "",
+    "createdAt": null,
+    "updatedAt": "2025-08-20T15:59:41.36473233",
+    "revoked": true
+  },
+  "credentialId": "urn:uuid:0cfe6c3f-a0bb-4e6c-b9b9-d9092c71ebbe"
+}
+

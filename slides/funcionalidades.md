@@ -1,0 +1,21 @@
+. Gerenciamento de DID (EIP-1056 Compliant)
+- createDID(address identity, string didDocument) - Criar nova identidade DID
+- updateDIDDocument(address identity, string newDidDocument) - Atualizar documento DID
+- identityOwner(address identity) - Retornar proprietário da identidade
+- getIdentityInfo(address identity) - Informações completas da identidade 2. Verificação KYC Bancária
+- setKYCStatus(address identity, bool verified) - Definir status KYC
+- isKYCVerified[address] - Mapping para status KYC 3. Credenciais Verificáveis (W3C Compliant)
+- issueCredential(bytes32 credentialId, address subject, bytes32 credentialHash) - Emitir credencial
+- revokeCredential(bytes32 credentialId, address subject, string reason) - Revogar credencial
+- restoreCredential(bytes32 credentialId, address subject, string reason) - Restaurar credencial
+- isCredentialRevoked(bytes32 credentialId) - Verificar se credencial está revogada
+- getCredentialRevocation(bytes32 credentialId) - Obter registro de revogação
+- getIdentityCredentials(address identity) - Obter credenciais de uma identidade 4. Delegates EIP-1056
+- addDelegate(address identity, bytes32 delegateType, address delegate, uint256 validity) - Adicionar delegate
+- revokeDelegate(address identity, bytes32 delegateType, address delegate) - Revogar delegate
+- validDelegate(address identity, bytes32 delegateType, address delegate) - Verificar delegate válido 5. Atributos EIP-1056
+- setAttribute(address identity, bytes32 name, bytes value, uint256 validity) - Definir atributo
+- revokeAttribute(address identity, bytes32 name, bytes value) - Revogar atributo 6. Métricas e Auditoria
+- getSystemMetrics() - Métricas do sistema
+- Eventos de auditoria bancária ( BankingAuditLog )
+- Controle de roles ( REGISTRAR_ROLE , ISSUER_ROLE , AUDITOR_ROLE , EMERGENCY_ROLE )

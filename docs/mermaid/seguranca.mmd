@@ -1,0 +1,50 @@
+flowchart TD
+    subgraph "🛡️ Framework de Segurança IDBra"
+        subgraph "📋 Padrões de Compliance"
+            S1["📜 EIP-1056<br/>Ethereum DID Registry"]
+            S2["🌐 W3C VC Data Model<br/>Credenciais Verificáveis"]
+            S3["📊 Status List 2021<br/>Gestão Revogação"]
+            S4["🔐 JWT/JWS<br/>Assinatura Digital"]
+        end
+
+        subgraph "🔒 Segurança Criptográfica"
+            C1["🔑 ECDSA secp256k1<br/>Assinaturas Ethereum"]
+            C2["#️⃣ SHA-256<br/>Hash Credenciais"]
+            C3["🔐 Chaves Privadas<br/>Custódia Segura"]
+        end
+
+        subgraph "⛓️ Segurança Blockchain"
+            B1["📋 Smart Contract<br/>Auditado"]
+            B2["👥 Controle Acesso<br/>Papéis Definidos"]
+            B3["🔄 Imutabilidade<br/>Registros Permanentes"]
+        end
+
+        subgraph "🔍 Verificação e Auditoria"
+            V1["✅ Verificação Assinatura<br/>Integridade Dados"]
+            V2["📊 Trilha Auditoria<br/>Logs Blockchain"]
+            V3["🕐 Timestamps<br/>Prova Temporal"]
+        end
+    end
+
+    S1 -.-> C1
+    S2 -.-> C2
+    S3 -.-> V2
+    S4 -.-> C1
+
+    C1 -.-> B1
+    C2 -.-> B3
+    C3 -.-> B2
+
+    B1 -.-> V1
+    B2 -.-> V2
+    B3 -.-> V3
+
+    classDef standardsStyle fill:#000,stroke:#fff,stroke-width:2px,color:#fff
+    classDef cryptoStyle fill:#333,stroke:#fff,stroke-width:2px,color:#fff
+    classDef blockchainStyle fill:#666,stroke:#fff,stroke-width:2px,color:#fff
+    classDef verificationStyle fill:#999,stroke:#fff,stroke-width:2px,color:#fff
+
+    class S1,S2,S3,S4 standardsStyle
+    class C1,C2,C3 cryptoStyle
+    class B1,B2,B3 blockchainStyle
+    class V1,V2,V3 verificationStyle
