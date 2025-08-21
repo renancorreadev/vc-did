@@ -1,0 +1,155 @@
+@startuml
+!theme vibrant
+
+skinparam {
+  backgroundColor transparent
+  roundcorner 10
+  shadowing true
+
+  sequenceArrowColor #1565C0
+  sequenceArrowThickness 2
+  sequenceLifeLineBackgroundColor #E3F2FD
+  sequenceLifeLineBorderColor #0D47A1
+  sequenceLifeLineBorderThickness 2
+
+  sequenceParticipantBackgroundColor #FFFFFF
+  sequenceParticipantBorderColor #1565C0
+  sequenceParticipantBorderThickness 2
+  sequenceParticipantFontColor #1A1A1A
+
+  sequenceActorBackgroundColor #E8F5E8
+  sequenceActorBorderColor #2E7D32
+  sequenceActorFontColor #1A1A1A
+
+  sequenceGroupBackgroundColor #FFF3E0
+  sequenceGroupBorderColor #F57C00
+  sequenceGroupHeaderFontColor #333333
+
+  noteFontColor #333333
+  noteBackgroundColor #F5F5F5
+  noteBorderColor #CCCCCC
+
+  defaultFontName "SF Pro Display"
+  defaultFontSize 12
+  sequenceMessageAlign left
+
+  minClassWidth 180
+  wrapWidth 200
+}
+
+title <size:20><color:#1A1A1A><b>IDBRA - Fluxo Completo de Emissão de Credencial de Renda</b></color></size>
+
+actor "🧑‍💼 **Cidadão**\n<size:10>(Lucia Oliveira)</size>" as CITIZEN #10b981
+participant "🔐 **IDBRA-CUSTODY**\n<size:10>:8082 - Ponte Segura</size>" as CUSTODY #f59e0b
+participant "🏛️ **IDBRA-ISSUER**\n<size:10>:8083 - Emissor</size>" as ISSUER #3b82f6
+participant "👤 **IDBRA-HOLDER**\n<size:10>:8084 - Portador</size>" as HOLDER #8b5cf6
+participant "🌐 **Hyperledger Besu**\n<size:10>Blockchain Network</size>" as BESU #ef4444
+database "💾 **PostgreSQL**\n<size:10>Custody Database</size>" as DB_CUSTODY #10b981
+database "💾 **PostgreSQL**\n<size:10>Issuer Database</size>" as DB_ISSUER #3b82f6
+
+group <color:#333333><b>📋 1. PREPARAÇÃO DE WALLETS E ROLES</b></color>
+  CUSTODY -> CUSTODY: <color:#1565C0><size:14><b>1.1</b></size></color> POST /api/wallets/import-admin
+
+  CUSTODY -> DB_CUSTODY: <color:#1565C0><size:14><b>1.2</b></size></color> Salvar wallet admin
+  activate DB_CUSTODY #E8F5E8
+  DB_CUSTODY --> CUSTODY: <color:#2E7D32><size:14><b>1.3</b></size></color> ✅ Wallet admin salva
+  deactivate DB_CUSTODY
+
+  CUSTODY -> CUSTODY: <color:#1565C0><size:14><b>1.4</b></size></color> POST /api/wallets
+
+  CUSTODY -> BESU: <color:#1565C0><size:14><b>1.5</b></size></color> POST /api/blockchain/grant-issuer-role
+  activate BESU #FFEBEE
+  BESU --> CUSTODY: <color:#2E7D32><size:14><b>1.6</b></size></color> ✅ ISSUER_ROLE concedido
+  deactivate BESU
+end
+
+group <color:#333333><b>🎯 2. CRIAÇÃO DE OFERTA DE CREDENCIAL</b></color>
+  CITIZEN -> CUSTODY: <color:#1565C0><size:14><b>2.1</b></size></color> POST /api/credential-offers
+  activate CUSTODY #FFF3E0
+
+  CUSTODY -> DB_CUSTODY: <color:#1565C0><size:14><b>2.2</b></size></color> Salvar oferta de credencial
+  activate DB_CUSTODY #E8F5E8
+  DB_CUSTODY --> CUSTODY: <color:#2E7D32><size:14><b>2.3</b></size></color> ✅ Oferta criada
+  deactivate DB_CUSTODY
+
+  CUSTODY --> CITIZEN: <color:#2E7D32><size:14><b>2.4</b></size></color> **200 OK** ✅
+  deactivate CUSTODY
+end
+
+group <color:#333333><b>✅ 3. APROVAÇÃO DA OFERTA PELO EMISSOR</b></color>
+  CUSTODY -> CUSTODY: <color:#1565C0><size:14><b>3.1</b></size></color> GET /api/credential-offers/pending
+
+  CUSTODY -> CUSTODY: <color:#1565C0><size:14><b>3.2</b></size></color> POST /api/credential-offers/{offerId}/approve
+
+  CUSTODY -> DB_CUSTODY: <color:#1565C0><size:14><b>3.3</b></size></color> Atualizar status da oferta
+  activate DB_CUSTODY #E8F5E8
+  DB_CUSTODY --> CUSTODY: <color:#2E7D32><size:14><b>3.4</b></size></color> ✅ Oferta aprovada
+  deactivate DB_CUSTODY
+end
+
+group <color:#333333><b>👤 4. CRIAÇÃO DE WALLET DO HOLDER</b></color>
+  CUSTODY -> CUSTODY: <color:#1565C0><size:14><b>4.1</b></size></color> POST /api/wallets/holder
+
+  CUSTODY -> DB_CUSTODY: <color:#1565C0><size:14><b>4.2</b></size></color> Verificar oferta e criar wallet
+  activate DB_CUSTODY #E8F5E8
+  DB_CUSTODY --> CUSTODY: <color:#2E7D32><size:14><b>4.3</b></size></color> ✅ Wallet holder criada
+  deactivate DB_CUSTODY
+end
+
+group <color:#333333><b>🆔 5. CRIAÇÃO DE DIDs NA BLOCKCHAIN</b></color>
+  CUSTODY -> BESU: <color:#1565C0><size:14><b>5.1</b></size></color> POST /api/blockchain/did/create
+  activate BESU #FFEBEE
+  BESU --> CUSTODY: <color:#2E7D32><size:14><b>5.2</b></size></color> ✅ DID Holder criado
+  deactivate BESU
+
+  CUSTODY -> BESU: <color:#1565C0><size:14><b>5.3</b></size></color> POST /api/blockchain/did/create
+  activate BESU #FFEBEE
+  BESU --> CUSTODY: <color:#2E7D32><size:14><b>5.4</b></size></color> ✅ DID Issuer criado
+  deactivate BESU
+end
+
+group <color:#333333><b>📊 6. CRIAÇÃO DE STATUSLIST</b></color>
+  CUSTODY -> ISSUER: <color:#1565C0><size:14><b>6.1</b></size></color> POST /api/statuslist
+  activate ISSUER #E3F2FD
+
+  ISSUER -> DB_ISSUER: <color:#1565C0><size:14><b>6.2</b></size></color> Criar StatusList2021
+  activate DB_ISSUER #E3F2FD
+  DB_ISSUER --> ISSUER: <color:#2E7D32><size:14><b>6.3</b></size></color> ✅ StatusList criada
+  deactivate DB_ISSUER
+
+  ISSUER --> CUSTODY: <color:#2E7D32><size:14><b>6.4</b></size></color> **200 OK** ✅
+  deactivate ISSUER
+end
+
+group <color:#333333><b>🎖️ 7. EMISSÃO DA CREDENCIAL VERIFICÁVEL</b></color>
+  CUSTODY -> ISSUER: <color:#1565C0><size:14><b>7.1</b></size></color> POST /api/credentials
+  activate ISSUER #E3F2FD
+
+  ISSUER -> ISSUER: <color:#7B1FA2><size:14><b>7.2</b></size></color> 🔐 Gerar JWT-VC
+
+  ISSUER -> DB_ISSUER: <color:#1565C0><size:14><b>7.3</b></size></color> Salvar credencial
+  activate DB_ISSUER #E3F2FD
+  DB_ISSUER --> ISSUER: <color:#2E7D32><size:14><b>7.4</b></size></color> ✅ Credencial salva
+  deactivate DB_ISSUER
+
+  ISSUER -> BESU: <color:#1565C0><size:14><b>7.5</b></size></color> Registrar credencial na blockchain
+  activate BESU #FFEBEE
+  BESU --> ISSUER: <color:#2E7D32><size:14><b>7.6</b></size></color> ✅ Credencial registrada
+  deactivate BESU
+
+  ISSUER --> CUSTODY: <color:#2E7D32><size:14><b>7.7</b></size></color> **200 OK** ✅
+  deactivate ISSUER
+
+  CUSTODY --> CITIZEN: <color:#2E7D32><size:14><b>7.8</b></size></color> 🎉 **Credencial emitida**
+end
+
+note over CITIZEN, DB_ISSUER #F5F5F5
+  <color:#333333><b>⚡ Performance & Tecnologias</b></color>
+  <color:#2E7D32>• <b>Tempo total:</b> 8-12 segundos</color>
+  <color:#1565C0>• <b>Backend:</b> Java Spring Boot + PostgreSQL</color>
+  <color:#D32F2F>• <b>Blockchain:</b> Hyperledger Besu (IBFT 2.0)</color>
+  <color:#7B1FA2>• <b>Padrões:</b> W3C VC, DID EIP-1056, StatusList2021</color>
+  <color:#F57C00>• <b>Segurança:</b> JWT ES256, HSM Integration</color>
+end note
+
+@enduml

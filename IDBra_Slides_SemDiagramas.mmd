@@ -1,0 +1,203 @@
+---
+marp: true
+size: 16:9
+paginate: true
+theme: default
+footer: 'IDBra — Confidencial • © 2025'
+style: |
+  section { font-size: 28px; }
+  h1, h2, h3 { color: #0F172A; }
+  .accent { color: #0EA5E9; font-weight: 700; }
+---
+
+<!-- _class: lead -->
+
+# **IDBra — Identidade Digital Descentralizada**
+### Solução enterprise para credenciais verificáveis
+**Apresentação para Instituições Financeiras**
+
+**Apresentador:** [Seu Nome] · **Data:** [Data] · **Contato:** [email / telefone]
+
+---
+
+## Agenda
+1) Problema e contexto \
+2) **Problemas da CPQD ID & como resolvemos** \
+3) Visão geral da solução IDBra \
+4) Arquitetura (Microserviços + Blockchain) \
+5) Fluxos (Oferta, Emissão, Verificação, Revogação) \
+6) Segurança e Conformidade \
+7) Performance e Escalabilidade \
+8) ROI e Roadmap
+
+---
+
+## Problema e contexto (mercado)
+- Falta de **interoperabilidade** entre emissores e verificadores
+- Dependência de **autoridades centralizadas** e integrações ponto‑a‑ponto
+- **Verificação lenta** e sujeita a fraude documental
+- Pressão de **conformidade** (BACEN, LGPD) e auditoria
+- Necessidade de **redução de custos** e **experiência digital**
+
+> **Necessidade:** identidade digital confiável, verificável em segundos e com privacidade por design.
+
+---
+
+## Problemas observados na **CPQD ID**
+- **Acoplamento** entre módulos de emissão/verificação, dificultando escalabilidade e evolução
+- **Governança de chaves** pouco granular (risco operacional, rotação complexa)
+- **Status de revogação** não padronizado entre integrações
+- **DID/VC** com uso limitado de perfis interoperáveis (web3 / did:web + did:ethr)
+- **Observabilidade** e trilha de auditoria distribuída insuficientes
+- **Time‑to‑market** alto para novos tipos de credencial
+- **Onboarding** do portador sem fluxo de consentimento/oferta
+- **Custos** de operação/integração elevados em cenários multi‑instituição
+
+---
+
+## Como o **IDBra** resolve — visão executiva
+- **Arquitetura desacoplada** de microserviços (Issuer, Verifier, Holder, Custody)
+- **Padrões W3C**: DID (did:web / did:ethr), VC (JWT‑VC) e **StatusList2021**
+- **Chaves e assinaturas** com HSM/KMS e segregação por domínio (least privilege)
+- **Trilha imutável** em Hyperledger Besu (IBFT 2.0) + auditoria completa
+- **Fluxo de oferta/consentimento** do holder antes da emissão
+- **APIs estáveis** e versionadas; integração via gateway + eventos
+- **Observabilidade enterprise** (métricas, logs, tracing)
+- **Automação** de revogação e verificação em milissegundos
+
+---
+
+## Mapeamento **Problema → Solução** (CPQD → IDBra)
+| Dor na CPQD | Efeito | Solução IDBra |
+|---|---|---|
+| Módulos acoplados | Deploys arriscados | Microserviços independentes (Issuer/Verifier/Holder/Custody) |
+| Revogação inconsistente | Risco de falso‑positivo | **StatusList2021** com URI pública e versionamento |
+| Chaves pouco segmentadas | Alto blast‑radius | HSM/KMS por serviço + rotação e políticas separadas |
+| Interop limitada | Lock‑in | **did:web** p/ emissores + **did:ethr** p/ holders |
+| Baixa observabilidade | MTTR alto | Prometheus/Grafana/ELK + tracing distribuído |
+| Onboarding frágil | Fricção/risco LGPD | Fluxo de **oferta/consentimento** antes de emitir |
+| Lento p/ novos VCs | Time‑to‑market | Schemas configuráveis + pipelines CI/CD |
+
+---
+
+## Visão geral — IDBra
+- **W3C DID/VC** com **JWT‑VC** e **StatusList2021**
+- **Hyperledger Besu** para âncoras imutáveis e auditoria
+- **APIs REST** e eventos; **integrações legadas** simplificadas
+- **Segurança enterprise** e **privacidade por design**
+
+**Benefícios:** segurança criptográfica, interoperabilidade, custos menores e time‑to‑value rápido.
+
+---
+
+## Arquitetura de microserviços (imagem)
+> Substitua pelo seu PNG do diagrama.
+
+![Arquitetura de microserviços](arquitetura_micro_servicos.png)
+
+**Portas sugeridas:** Custody `8082` · Issuer `8083` · Holder `8084` · Verifier `8085`
+
+---
+
+## Papéis e identificadores
+- **Issuer (ex.: Receita, Universidade)**: `did:web:instituicao.gov.br` \
+  • Confiança por DNS/TLS, simples para verificadores
+- **Holder (cidadão/cliente)**: `did:ethr:0x…` \
+  • Vínculo direto à wallet e posse de chave
+- **ID de credencial**: `urn:uuid:…` (estável e não resolvível publicamente)
+- **Assinatura**: `jwsToken` (JWT assinado, verificação offline)
+
+---
+
+## Fluxo — Geração de oferta (imagem)
+> Substitua pelo seu PNG do diagrama.
+
+![Geração de oferta](fluxo_oferta.png)
+
+**Valor:** consentimento explícito, coleta mínima de dados, base para emissão.
+
+---
+
+## Fluxo — Emissão (imagem)
+> Substitua pelo seu PNG do diagrama.
+
+![Emissão de credencial](fluxo_emissao.png)
+
+**Saída:** `credentialId (urn:uuid)` + `jwt` (JWT‑VC assinado) + registro na StatusList.
+
+---
+
+## Fluxo — Verificação (imagem)
+> Substitua pelo seu PNG do diagrama.
+
+![Verificação de credencial](fluxo_web3.png)
+
+**Tripla checagem:** assinatura JWT → existência na cadeia → **StatusList** (revogado ou válido).
+
+---
+
+## Fluxo — Revogação (imagem)
+> Substitua pelo seu PNG do diagrama.
+
+![Revogação](fluxo_revogacao.png)
+
+**Características:** processo auditável, atualização da StatusList e confirmação imutável na blockchain.
+
+---
+
+## Carteira do titular (Holder) (imagem)
+> Substitua pelo seu PNG do diagrama.
+
+![App Holder](fluxo_holder.png)
+
+- Listagem de VCs, detalhes e verificação em tempo real
+- Acesso **somente** às credenciais do próprio titular
+- LGPD by design (mínimo necessário, consentimento, logs)
+
+---
+
+## Segurança e conformidade
+- **HSM/KMS** (ex.: Thales SafeNet) p/ chaves críticas
+- **mTLS**, OAuth 2.0/JWT, políticas de escopo por serviço
+- **Criptografia** em trânsito e em repouso (AES‑256, ES256/ES256K)
+- **Zero‑Trust** + segregação de ambientes
+- **Conformidade:** LGPD, ISO 27001, SOX; aderente a PCI DSS
+
+---
+
+## Performance e escalabilidade
+- Emissão: **8–12 s** · Verificação: **2–3 s** · Revogação: **3–5 s**
+- Throughput blockchain: **1000+ TPS** (rede Besu IBFT 2.0)
+- **Escala horizontal** por microserviço; **SLA 99,9%**
+- Observabilidade ponta‑a‑ponta (métricas, logs, tracing)
+
+> *Números podem variar conforme topologia e SLAs do banco.*
+
+---
+
+## Roadmap
+- **MVP**: fluxos principais (oferta, emissão, verificação, revogação)
+- **Próximo**: web & mobile apps; integrações legadas; novos tipos de VC
+- **Rede multi‑institucional** com governança federada e catálogos de esquemas
+- **Analytics** de confiança/uso (sem PII) para decisão de risco
+
+---
+
+## ROI e benefícios
+- **70%** menos tempo de verificação manual \
+- **60%** menos custos operacionais \
+- **80%** menos erros de validação \
+- **50%** menos custos burocráticos
+- Novas receitas via **serviços de verificação** e parcerias
+
+> Payback estimado: **12–18 meses** (depende do alcance e integrações).
+
+---
+
+## Próximos passos
+1. **Workshop técnico** (arquitetura e segurança)
+2. **PoC** com tipo de credencial do banco
+3. **Plano de roll‑out** e integração com legados
+4. Modelo operacional e **SLA**
+
+**Contato:** [email / telefone] · **Obrigado!**

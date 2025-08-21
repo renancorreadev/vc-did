@@ -1,0 +1,181 @@
+@startuml
+!theme vibrant
+skinparam {
+  backgroundColor transparent
+  roundcorner 12
+  shadowing true
+
+  package {
+    BackgroundColor #f8fafc
+    BorderColor #e2e8f0
+    BorderThickness 2
+    FontColor #1e293b
+    FontSize 12
+  }
+
+  component {
+    BackgroundColor #ffffff
+    BorderColor #475569
+    FontColor #334155
+    BorderThickness 2
+    roundcorner 10
+    FontSize 11
+  }
+
+  database {
+    BackgroundColor #f1f5f9
+    BorderColor #64748b
+    FontColor #475569
+    BorderThickness 2
+    roundcorner 8
+  }
+
+  arrow {
+    Color #0ea5e9
+    thickness 2
+  }
+
+  defaultFontName "Inter"
+  defaultFontSize 11
+}
+
+title <size:18><color:#0f172a><b>IDBRA - Arquitetura de Microserviços</b></color>\n<size:13><color:#64748b>Sistema de Identidade Digital Descentralizada - Ambiente Enterprise</color></size>
+
+' ===============================
+' EXTERNAL INTERFACES
+' ===============================
+package "🌐 **Front-end & Gateway**" as EXTERNAL #f0f9ff {
+  component [💻 **Portal Web**\nReact.js + TypeScript\nInterface Institucional] as WEB_CLIENT #3b82f6
+  component [📱 **Mobile App**\nReact Native\nCarteira Digital] as MOBILE_CLIENT #8b5cf6
+  component [🔌 **API Gateway**\nNGINX + Kong\nLoad Balancer] as API_GATEWAY #06b6d4
+}
+
+' ===============================
+' MICROSERVICES LAYER
+' ===============================
+package "⚙️ **Camada de Microserviços**" as MICROSERVICES #f8fafc {
+
+  component [🔐 **CUSTODY**\n<size:10>:8082</size>\n\n• Wallet Management\n• Crypto Operations\n• Blockchain Bridge\n• HSM Integration] as CUSTODY_SVC #f59e0b
+
+  component [🏛️ **ISSUER**\n<size:10>:8083</size>\n\n• Credential Issuance\n• StatusList Management\n• Digital Signatures\n• Revocation Control] as ISSUER_SVC #10b981
+
+  component [👤 **HOLDER**\n<size:10>:8084</size>\n\n• Personal Wallet\n• Credential Storage\n• Privacy Controls\n• Self-Sovereign ID] as HOLDER_SVC #8b5cf6
+
+  component [✅ **VERIFIER**\n<size:10>:8085</size>\n\n• Credential Validation\n• Status Verification\n• Compliance Checks\n• Audit Trails] as VERIFIER_SVC #ef4444
+}
+
+' ===============================
+' BLOCKCHAIN INFRASTRUCTURE
+' ===============================
+package "⛓️ **Blockchain Infrastructure**" as BLOCKCHAIN #fef2f2 {
+  component [🌐 **Hyperledger Besu**\n<color:#64748b>Private Permissioned Network</color>\n\n• IBFT 2.0 Consensus\n• 4 Institutional Validators\n• 1000+ TPS Performance\n• <3s Block Finality] as BESU_NETWORK #dc2626
+
+  component [📋 **Smart Contracts**\n<color:#64748b>Ethereum Compatible</color>\n\n• DID Registry (EIP-1056)\n• StatusList2021 (W3C)\n• Governance Framework\n• Upgrade Mechanisms] as SMART_CONTRACTS #b91c1c
+}
+
+' ===============================
+' DATA PERSISTENCE
+' ===============================
+package "💾 **Data & Storage Layer**" as DATA_LAYER #f0fdf4 {
+  database [📊 **MongoDB Custody**\n<color:#64748b>Encrypted Metadata</color>\n\n• Wallet Configurations\n• Transaction Logs\n• Cryptographic Keys\n• Security Policies] as DB_CUSTODY #059669
+
+  database [📊 **MongoDB Issuer**\n<color:#64748b>Credential Registry</color>\n\n• VC Templates\n• StatusList Storage\n• Issuance History\n• Audit Trails] as DB_ISSUER #0d9488
+
+  database [📊 **MongoDB Holder**\n<color:#64748b>Personal Vault</color>\n\n• User Credentials\n• Privacy Settings\n• Access History\n• Consent Records] as DB_HOLDER #7c3aed
+
+  database [📊 **MongoDB Verifier**\n<color:#64748b>Validation Cache</color>\n\n• Verification Logs\n• Performance Metrics\n• Compliance Reports\n• Trust Scores] as DB_VERIFIER #0ea5e9
+}
+
+' ===============================
+' SECURITY & OBSERVABILITY
+' ===============================
+package "🔒 **Security & Observability**" as SECURITY #fffbeb {
+  component [🛡️ **Security Stack**\n<color:#64748b>Enterprise Grade</color>\n\n• Thales SafeNet HSM\n• JWT/OAuth 2.0\n• mTLS Encryption\n• Zero Trust Network] as SECURITY_STACK #f59e0b
+
+  component [📊 **Observability**\n<color:#64748b>Full Stack Monitoring</color>\n\n• Prometheus Metrics\n• Grafana Dashboards\n• ELK Log Analytics\n• Jaeger Tracing] as OBSERVABILITY #d97706
+
+  component [🚨 **Compliance Engine**\n<color:#64748b>Regulatory Framework</color>\n\n• LGPD Compliance\n• SOX Controls\n• PCI DSS Level 1\n• ISO 27001] as COMPLIANCE #ea580c
+}
+
+' ===============================
+' EXTERNAL CONNECTIONS
+' ===============================
+WEB_CLIENT -down-> API_GATEWAY : <color:#3b82f6><b>HTTPS/WSS</b></color>
+MOBILE_CLIENT -down-> API_GATEWAY : <color:#8b5cf6><b>REST API</b></color>
+
+API_GATEWAY -down-> CUSTODY_SVC : <color:#f59e0b><b>Secure Bridge</b></color>
+API_GATEWAY -down-> ISSUER_SVC : <color:#10b981><b>Issuance Flow</b></color>
+API_GATEWAY -down-> HOLDER_SVC : <color:#8b5cf6><b>Wallet Access</b></color>
+API_GATEWAY -down-> VERIFIER_SVC : <color:#ef4444><b>Verification</b></color>
+
+' ===============================
+' MICROSERVICES TO DATA
+' ===============================
+CUSTODY_SVC -down-> DB_CUSTODY : <color:#059669><b>Encrypted I/O</b></color>
+ISSUER_SVC -down-> DB_ISSUER : <color:#0d9488><b>Credential Store</b></color>
+HOLDER_SVC -down-> DB_HOLDER : <color:#7c3aed><b>Personal Data</b></color>
+VERIFIER_SVC -down-> DB_VERIFIER : <color:#0ea5e9><b>Validation Cache</b></color>
+
+' ===============================
+' MICROSERVICES TO BLOCKCHAIN
+' ===============================
+CUSTODY_SVC -down-> BESU_NETWORK : <color:#dc2626><b>Wallet Ops</b></color>
+ISSUER_SVC -down-> BESU_NETWORK : <color:#dc2626><b>Registration</b></color>
+VERIFIER_SVC -down-> BESU_NETWORK : <color:#dc2626><b>Validation</b></color>
+
+ISSUER_SVC -down-> SMART_CONTRACTS : <color:#b91c1c><b>Contract Calls</b></color>
+VERIFIER_SVC -down-> SMART_CONTRACTS : <color:#b91c1c><b>Status Queries</b></color>
+
+' ===============================
+' INTER-SERVICE COMMUNICATION
+' ===============================
+CUSTODY_SVC <-right-> ISSUER_SVC : <color:#64748b><b>Internal gRPC</b></color>
+ISSUER_SVC <-right-> HOLDER_SVC : <color:#64748b><b>Credential Sync</b></color>
+HOLDER_SVC <-right-> VERIFIER_SVC : <color:#64748b><b>Verify Request</b></color>
+VERIFIER_SVC <-left-> CUSTODY_SVC : <color:#64748b><b>Status Check</b></color>
+
+' ===============================
+' SECURITY CONNECTIONS
+' ===============================
+SECURITY_STACK -up-> CUSTODY_SVC : <color:#f59e0b><b>HSM</b></color>
+OBSERVABILITY -up-> MICROSERVICES : <color:#d97706><b>Metrics</b></color>
+COMPLIANCE -up-> MICROSERVICES : <color:#ea580c><b>Audit</b></color>
+
+' ===============================
+' ARCHITECTURAL NOTES
+' ===============================
+note top of EXTERNAL #f0f9ff
+  <color:#3b82f6><b>🎯 Client Layer</b></color>
+  • Modern SPA Architecture
+  • Progressive Web App (PWA)
+  • Mobile-First Design
+  • OAuth 2.0 + PKCE
+end note
+
+note top of BLOCKCHAIN #fef2f2
+  <color:#dc2626><b>⛓️ Distributed Ledger</b></color>
+  • Byzantine Fault Tolerance
+  • Institutional Governance
+  • Enterprise Performance
+  • Regulatory Compliance
+end note
+
+note bottom of DATA_LAYER #f0fdf4
+  <color:#059669><b>💾 Data Architecture</b></color>
+  • Document-Based Storage
+  • Horizontal Scaling
+  • Automatic Sharding
+  • Point-in-Time Recovery
+  • AES-256 Encryption at Rest
+end note
+
+note bottom of SECURITY #fffbeb
+  <color:#f59e0b><b>🔒 Zero Trust Security</b></color>
+  • Hardware Security Module
+  • End-to-End Encryption
+  • Multi-Factor Authentication
+  • Continuous Compliance
+  • 24/7 SOC Monitoring
+end note
+
+@enduml

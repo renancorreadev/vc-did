@@ -1,0 +1,276 @@
+---
+marp: true
+title: IDBra — Identidade Digital Descentralizada para o Setor Financeiro
+description: Apresentação executiva para avaliação de solução de credenciais verificáveis e identidade descentralizada
+paginate: true
+size: 16:9
+theme: default
+---
+
+<!-- _class: lead -->
+
+# IDBra — Identidade Digital Descentralizada
+## Credenciais Verificáveis para Bancos e Instituições Financeiras
+
+**Apresentador:** [Seu Nome]  \
+**Data:** [dd/mm/aaaa]  \
+**Organização:** [Seu Orgão/Empresa]
+
+---
+
+## Sumário Executivo
+
+- Plataforma enterprise para emissão, verificação e revogação de **Credenciais Verificáveis (W3C VC)**.
+- **Arquitetura de microserviços** sobre **Hyperledger Besu (IBFT 2.0)**.
+- **DID:** `did:web` para emissores institucionais e `did:ethr` para cidadãos/empresas.
+- **StatusList2021** para revogação eficiente e auditável.
+- **SLOs** de referência: emissão 8–12s, verificação 2–3s, revogação 3–5s; disponibilidade 99,9%.
+- Conformidade: **LGPD**, trilhas de auditoria, segregação de funções e HSM opcional.
+
+---
+
+## Contexto de Mercado e Desafios
+
+- Pressão regulatória por **confiabilidade, auditabilidade e privacidade**.
+- Crescente demanda por **onboarding digital** e **KYC/AML** com menos fricção.
+- Necessidade de **interoperabilidade** entre órgãos emissores e bancos.
+- Eliminar dependência de **autoridades/fornecedores centralizados**.
+
+---
+
+## Problemas observados com soluções CPQD/centralizadas (em pilotos)
+
+| Categoria | Sintoma típico | Impacto em bancos |
+|---|---|---|
+| Interoperabilidade | Acoplamento forte, pouca aderência a W3C DID/VC | Integrações caras, lock‑in |
+| Revogação | Ausência/limitação de StatusList2021 | Risco de aceitar credencial inválida |
+| Descentralização | Dependência de trust root único | Ponto único de falha e governança opaca |
+| Escala/Latência | Degradação em picos, filas centralizadas | SLAs instáveis, experiência ruim |
+| Auditoria | Trilhas parciais, pouca prova cripto | Dificuldade de comprovação e forense |
+| Gestão de chaves | Sem HSM/KMS integrado fim‑a‑fim | Superfície de ataque ampliada |
+| Dados pessoais | Modelos centrados no provedor | Risco LGPD, excesso de retenção |
+| Observabilidade | Métricas limitadas e pouca telemetria | Baixa previsibilidade operacional |
+
+<!-- _notes: Tono: descrever como "achados de pilotos/mercado". Evitar alegações absolutas. -->
+
+---
+
+## Como o IDBra resolve — visão de mapeamento
+
+| Problema | Abordagem IDBra |
+|---|---|
+| Lock‑in / baixa compatibilidade | **Padrões W3C** (DID/VC, JWT‑VC) + `did:web`/`did:ethr` |
+| Revogação frágil | **StatusList2021** com versionamento, hash e auditoria |
+| Ponto único de falha | **Hyperledger Besu (IBFT 2.0)** em rede permissionada |
+| Escala/Latência | **Microserviços** (custody/issuer/holder/verifier) + autoscaling |
+| Auditoria limitada | **Registro on‑chain** de existência e eventos críticos |
+| Gestão de chaves | **HSM/KMS** (ex.: Thales SafeNet), rotação e mTLS |
+| LGPD | **Minimização** (JWT‑VC), consentimento e retenção granular |
+| Operação | **Observabilidade** (Prometheus, Grafana, logs estruturados) |
+
+---
+
+## Arquitetura de Microserviços (Visão)
+
+![bg right:40%](images/arquitetura_micro_servicos.png)
+
+- **IDBRA‑CUSTODY (8082):** orquestração, carteiras, papel de ponte com a blockchain.
+- **IDBRA‑ISSUER (8083):** emissão/gestão de credenciais e StatusLists.
+- **IDBRA‑HOLDER (8084):** carteira do cidadão/empresa (listagem e gestão local).
+- **IDBRA‑VERIFIER (8085):** verificação estateless de JWT‑VC + StatusList.
+
+Backbone: Hyperledger Besu (IBFT 2.0), PostgreSQL, Spring Boot, mTLS, OAuth2/JWT.
+
+---
+
+## Fluxo end‑to‑end (Oferta → Emissão → Verificação → Revogação)
+
+![bg right:40%](images/fluxo_emissao.png)
+
+1. **Oferta (holder):** pedido estruturado ao emissor.
+2. **Aprovação (issuer):** validação e autorização.
+3. **DIDs:** `did:web` (emissor), `did:ethr` (holder).
+4. **StatusList:** preparo da lista de revogação.
+5. **Emissão:** geração da **JWT‑VC** e registro on‑chain.
+6. **Verificação:** assinatura + existência + StatusList.
+7. **Revogação:** atualização StatusList e registro de evento.
+
+---
+
+## Por que `did:web` (issuer) e `did:ethr` (holder)?
+
+- **Emissor institucional (`did:web`)**
+  - Aderente à identidade jurídica pública do órgão (DNS/TLS).
+  - Fácil ancoragem de confiança corporativa e governança.
+- **Portador (`did:ethr`)**
+  - Portável, neutro e compatível com carteiras EVM.
+  - Endereços diferentes suportam múltiplos contextos/privacidade.
+
+---
+
+## Emissão de Credencial (exemplo prático)
+
+Inputs (resumo):
+- Wallets preparadas, **ISSUER_ROLE** concedida.
+- **Oferta aprovada** e DIDs criados.
+- **StatusList** provisionada.
+
+Outputs:
+- **JWT‑VC** assinada (`ES256/ES256K` conforme perfil).
+- **credentialId** (`urn:uuid:...`) com hash/registro on‑chain.
+- Metadados: `issuerDid`, `holderDid`, `statusListId`, `expiresAt`.
+
+SLO: **8–12s** ponta‑a‑ponta em ambiente de referência.
+
+---
+
+## Verificação — Tripla Checagem
+
+1) **Assinatura JWT/JWS** (integridade + emissor).
+2) **Prova de existência on‑chain** (anti‑forja).
+3) **StatusList2021** (não revogada).
+
+Resposta típica (2–3s): **VÁLIDA / INVÁLIDA** com motivo e trilha de auditoria.
+
+![bg right:40%](images/fluxo_idbra-web3.png)
+
+---
+
+## Revogação — Controle e Auditoria
+
+- Atualização da **StatusList** (index + versão + hash).
+- Registro **imutável** do evento de revogação.
+- Verificação subsequente retorna **INVÁLIDA**.
+
+SLO: **3–5s**.
+Trilha: `credentialId`, `revokedAt`, `revoker`, `reason`.
+
+![bg right:40%](images/fluxo_revogacao.png)
+
+---
+
+## Segurança e Compliance
+
+- **Criptografia:** mTLS, AES‑256 at‑rest, ES256/ES256K para VC.
+- **HSM/KMS:** chaves de produção no HSM (ex.: Thales SafeNet).
+- **Segregação de funções:** custody ≠ issuer ≠ verifier ≠ holder.
+- **LGPD:** minimização de dados, consentimento, retenção controlada.
+- **Auditoria:** logs estruturados, carimbos de tempo e hashes.
+
+---
+
+## SLOs, Escala e Observabilidade
+
+- **Disponibilidade:** 99,9% (multi‑réplica).
+- **Throughput:** dimensionável por microserviço.
+- **Auto‑scaling** horizontal + **health checks**.
+- **Observabilidade:** Prometheus, Grafana, ELK; rastreamento de latência por etapa (emissão, verificação, revogação).
+
+---
+
+## Integração e Migração a partir de CPQD
+
+1. **Camada de compatibilidade** (adaptação de payloads).
+2. **Double‑write**: manter CPQD e IDBra por período de sombra.
+3. **Cutover por domínio de credencial** (ex.: renda, diploma…).
+4. **Desativação gradual** de endpoints legados.
+5. **Auditoria**: reconciliação de lotes e relatórios de divergência.
+
+---
+
+## Casos de Uso Prioritários para Bancos
+
+- **Onboarding/KYC** com prova de renda e identidade.
+- **Concessão de crédito** e atualização cadastral contínua.
+- **Compliance**: evidências auditáveis e criptográficas.
+- **Parcerias** com órgãos emissores (ex.: educação, governo).
+
+---
+
+## Roadmap (alto nível)
+
+- **Q1–Q2:** fortalecimento de APIs de integração e UX web/mobile.
+- **Q3:** federação multi‑institucional, catálogos de schemas e trust‑lists.
+- **Q4:** expansão de tipos de credencial e governança compartilhada.
+
+---
+
+## Business Case (estimativas)
+
+- **Redução de custos operacionais** (verificação manual, revalidações).
+- **Tempo de onboarding** reduzido (segundos, não dias).
+- **Menos fraudes** via prova cripto e revogação online.
+- **Time‑to‑market** mais curto com componentes plug‑and‑play.
+
+<!-- _notes: Ajustar números com dados reais do cliente/PoC. -->
+
+---
+
+## Prova de Conceito — Critérios de Sucesso
+
+- Emissão/Verificação/Revogação com SLO atingido.
+- Integração com sistemas core (KYC/CRM) via APIs.
+- Relatórios de auditoria e conformidade.
+- Operação monitorada (dashboards e alertas).
+
+---
+
+## Encerramento
+
+**IDBra** entrega credenciais verificáveis com **segurança, auditabilidade e interoperabilidade**, prontas para escala bancária.
+
+**Próximos passos:** workshop técnico, escopo de PoC e cronograma.
+
+**Contato:** [seu e‑mail] | [seu telefone]
+
+---
+
+<!-- Appendix -->
+
+## Apêndice A — Microserviços e responsabilidades
+
+- **IDBRA‑CUSTODY (8082):** carteiras, DIDs, ponte com a rede; orquestração e roles.
+- **IDBRA‑ISSUER (8083):** criação de **StatusList**, emissão de **JWT‑VC**, revogação/restauração.
+- **IDBRA‑VERIFIER (8085):** verificação de **JWT‑VC** + existência + StatusList.
+- **IDBRA‑HOLDER (8084):** carteira do usuário; listagem e consulta às próprias credenciais.
+
+**Banco de dados:** 1 schema por microserviço (isolamento operacional e LGPD).
+
+---
+
+## Apêndice B — Mapeamento do fluxo às APIs (exemplos reais)
+
+- **Admin/Custody**
+  - `POST /api/wallets/import-admin`
+  - `POST /api/wallets` (issuer/holder), `GET /api/wallets/{addr}`
+  - `POST /api/blockchain/grant-issuer-role/{addr}`, `GET /api/blockchain/check-role/{addr}`
+  - `POST /api/blockchain/did/create`
+
+- **Offers (pré‑emissão)**
+  - `POST /api/credential-offers` (criação)
+  - `GET /api/credential-offers/pending?issuerDid=...` (lista)
+  - `POST /api/credential-offers/{offerId}/approve?approverWalletAddress=...`
+
+- **Issuer**
+  - `POST /api/statuslist?...` (criação)
+  - `GET /api/statuslist/{listId}/metadata` (consulta)
+  - `POST /api/credentials` (emissão), `GET /api/credentials/{id}/exists`
+
+- **Verifier**
+  - `POST /api/credentials/verify` (JWT‑VC)
+  - `GET /api/credentials/{id}/revocation-status`
+
+- **Revogação**
+  - `POST /api/credentials/{id}/revoke`
+  - `GET /api/statuslist/{listId}/metadata` (após revogação)
+
+---
+
+## Apêndice C — Glossário Rápido
+
+- **DID**: Identificador descentralizado (ex.: `did:web`, `did:ethr`).
+- **VC / JWT‑VC**: Credencial Verificável (formato JWT assinado).
+- **StatusList2021**: Mecanismo W3C para revogação/estado.
+- **Besu IBFT 2.0**: Consenso permissionado tolerante a falhas.
+- **HSM/KMS**: Módulo/serviço de segurança para guarda de chaves.
+

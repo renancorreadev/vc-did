@@ -1,0 +1,97 @@
+@startuml
+!theme vibrant
+
+skinparam {
+  backgroundColor transparent
+  roundcorner 10
+  shadowing true
+
+  sequenceArrowColor #1565C0
+  sequenceArrowThickness 2
+  sequenceLifeLineBackgroundColor #FFEBEE
+  sequenceLifeLineBorderColor #B71C1C
+  sequenceLifeLineBorderThickness 2
+
+  sequenceParticipantBackgroundColor #FFFFFF
+  sequenceParticipantBorderColor #D32F2F
+  sequenceParticipantBorderThickness 2
+  sequenceParticipantFontColor #1A1A1A
+
+  sequenceActorBackgroundColor #FFF3E0
+  sequenceActorBorderColor #F57C00
+  sequenceActorFontColor #1A1A1A
+
+  sequenceGroupBackgroundColor #F3E5F5
+  sequenceGroupBorderColor #7B1FA2
+  sequenceGroupHeaderFontColor #333333
+
+  noteFontColor #333333
+  noteBackgroundColor #F5F5F5
+  noteBorderColor #CCCCCC
+
+  defaultFontName "SF Pro Display"
+  defaultFontSize 12
+  sequenceMessageAlign left
+
+  minClassWidth 180
+  wrapWidth 200
+}
+
+title <size:20><color:#1A1A1A><b>IDBRA - Fluxo de Revogação de Credencial</b></color></size>
+
+actor "👨‍💼 **Administrador**\n<size:10>(Emissor Autorizado)</size>" as ADMIN #F57C00
+participant "🏛️ **IDBRA-ISSUER**\n<size:10>:8083 - Serviço Emissor</size>" as ISSUER #ef4444
+participant "💾 **PostgreSQL**\n<size:10>Issuer Database</size>" as DB_ISSUER #ef4444
+participant "🌐 **Hyperledger Besu**\n<size:10>Blockchain Network</size>" as BESU #D32F2F
+
+group <color:#333333><b>📝 1. SOLICITAÇÃO DE REVOGAÇÃO</b></color>
+  ADMIN -> ISSUER: <color:#1565C0><size:14><b>1.1</b></size></color> POST /api/credentials/{id}/revoke
+  activate ISSUER #FFEBEE
+
+  ISSUER -> ISSUER: <color:#7B1FA2><size:14><b>1.2</b></size></color> 🔍 Verificar credencial existe
+
+  ISSUER -> DB_ISSUER: <color:#1565C0><size:14><b>1.3</b></size></color> Buscar credencial no banco
+  activate DB_ISSUER #FFEBEE
+
+  DB_ISSUER --> ISSUER: <color:#2E7D32><size:14><b>1.4</b></size></color> ✅ Credencial encontrada
+  deactivate DB_ISSUER
+end
+
+group <color:#333333><b>📊 2. ATUALIZAÇÃO STATUSLIST</b></color>
+  ISSUER -> ISSUER: <color:#7B1FA2><size:14><b>2.1</b></size></color> 📋 Atualizar StatusList2021
+
+  ISSUER -> DB_ISSUER: <color:#1565C0><size:14><b>2.2</b></size></color> Marcar índice como revogado
+  activate DB_ISSUER #FFEBEE
+
+  DB_ISSUER --> ISSUER: <color:#2E7D32><size:14><b>2.3</b></size></color> ✅ StatusList atualizada
+  deactivate DB_ISSUER
+
+  ISSUER -> BESU: <color:#1565C0><size:14><b>2.4</b></size></color> Registrar revogação na blockchain
+  activate BESU #FFE0E0
+
+  BESU --> ISSUER: <color:#2E7D32><size:14><b>2.5</b></size></color> ✅ Revogação registrada
+  deactivate BESU
+end
+
+group <color:#333333><b>✅ 3. CONFIRMAÇÃO FINAL</b></color>
+  ISSUER -> DB_ISSUER: <color:#1565C0><size:14><b>3.1</b></size></color> Atualizar status para REVOKED
+  activate DB_ISSUER #FFEBEE
+
+  DB_ISSUER --> ISSUER: <color:#2E7D32><size:14><b>3.2</b></size></color> ✅ Status atualizado
+  deactivate DB_ISSUER
+
+  ISSUER -> ISSUER: <color:#7B1FA2><size:14><b>3.3</b></size></color> 🔒 Finalizar processo
+
+  ISSUER --> ADMIN: <color:#2E7D32><size:14><b>3.4</b></size></color> 🚫 **Revogação Confirmada**
+  deactivate ISSUER
+end
+
+note over ADMIN, BESU #F5F5F5
+  <color:#333333><b>⚡ Performance & Segurança</b></color>
+  <color:#2E7D32>• <b>Tempo total:</b> 3-5 segundos</color>
+  <color:#D32F2F>• <b>Irreversível:</b> Registro permanente</color>
+  <color:#7B1FA2>• <b>Padrão:</b> StatusList2021 W3C</color>
+  <color:#F57C00>• <b>Auditoria:</b> Trilha completa</color>
+end note
+
+@enduml

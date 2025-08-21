@@ -1,0 +1,95 @@
+@startuml
+!theme vibrant
+
+skinparam {
+  backgroundColor transparent
+  roundcorner 10
+  shadowing true
+
+  sequenceArrowColor #1565C0
+  sequenceArrowThickness 2
+  sequenceLifeLineBackgroundColor #E3F2FD
+  sequenceLifeLineBorderColor #0D47A1
+  sequenceLifeLineBorderThickness 2
+
+  sequenceParticipantBackgroundColor #FFFFFF
+  sequenceParticipantBorderColor #1565C0
+  sequenceParticipantBorderThickness 2
+  sequenceParticipantFontColor #1A1A1A
+
+  sequenceActorBackgroundColor #E8F5E8
+  sequenceActorBorderColor #2E7D32
+  sequenceActorFontColor #1A1A1A
+
+  sequenceGroupBackgroundColor #FFF3E0
+  sequenceGroupBorderColor #F57C00
+  sequenceGroupHeaderFontColor #333333
+
+  noteFontColor #333333
+  noteBackgroundColor #F5F5F5
+  noteBorderColor #CCCCCC
+
+  defaultFontName "SF Pro Display"
+  defaultFontSize 12
+  sequenceMessageAlign left
+
+  minClassWidth 180
+  wrapWidth 200
+}
+
+title <size:20><color:#1A1A1A><b>IDBRA - Fluxo de Verificação de Credencial</b></color></size>
+
+actor "🔍 **Verificador**\n<size:10>(Entidade Validadora)</size>" as VERIFIER_USER #2E7D32
+participant "✅ **IDBRA-VERIFIER**\n<size:10>:8085 - Serviço Verificação</size>" as VERIFIER #8b5cf6
+participant "🔐 **IDBRA-CUSTODY**\n<size:10>:8082 - Ponte Segura</size>" as CUSTODY #f59e0b
+participant "🌐 **Hyperledger Besu**\n<size:10>Blockchain Network</size>" as BESU #ef4444
+
+group <color:#333333><b>🔐 1. VERIFICAÇÃO JWT</b></color>
+  VERIFIER_USER -> VERIFIER: <color:#1565C0><size:14><b>1.1</b></size></color> POST /api/credentials/verify
+  activate VERIFIER #F3E5F5
+
+  VERIFIER -> VERIFIER: <color:#7B1FA2><size:14><b>1.2</b></size></color> 🔐 Validar assinatura JWT
+
+  VERIFIER --> VERIFIER_USER: <color:#2E7D32><size:14><b>1.3</b></size></color> ✅ JWT válido
+  deactivate VERIFIER
+end
+
+group <color:#333333><b>⛓️ 2. VERIFICAÇÃO BLOCKCHAIN</b></color>
+  VERIFIER -> CUSTODY: <color:#1565C0><size:14><b>2.1</b></size></color> GET /api/credentials/{id}/exists
+  activate CUSTODY #FFF3E0
+
+  CUSTODY -> BESU: <color:#1565C0><size:14><b>2.2</b></size></color> Consultar smart contract
+  activate BESU #FFEBEE
+
+  BESU --> CUSTODY: <color:#2E7D32><size:14><b>2.3</b></size></color> ✅ Credencial existe
+  deactivate BESU
+
+  CUSTODY --> VERIFIER: <color:#2E7D32><size:14><b>2.4</b></size></color> ✅ Confirmado na blockchain
+  deactivate CUSTODY
+end
+
+group <color:#333333><b>📊 3. STATUS DE REVOGAÇÃO</b></color>
+  VERIFIER -> CUSTODY: <color:#1565C0><size:14><b>3.1</b></size></color> GET /api/credentials/{id}/revocation-status
+  activate CUSTODY #FFF3E0
+
+  CUSTODY -> CUSTODY: <color:#7B1FA2><size:14><b>3.2</b></size></color> 📋 Consultar StatusList2021
+
+  CUSTODY --> VERIFIER: <color:#2E7D32><size:14><b>3.3</b></size></color> ✅ Status: VALID
+  deactivate CUSTODY
+end
+
+group <color:#333333><b>🎯 4. RESULTADO FINAL</b></color>
+  VERIFIER -> VERIFIER: <color:#7B1FA2><size:14><b>4.1</b></size></color> 🔍 Compilar resultado final
+
+  VERIFIER --> VERIFIER_USER: <color:#2E7D32><size:14><b>4.2</b></size></color> 🎉 **Credencial Válida**
+end
+
+note over VERIFIER_USER, BESU #F5F5F5
+  <color:#333333><b>⚡ Performance & Validação</b></color>
+  <color:#2E7D32>• <b>Tempo total:</b> 2-3 segundos</color>
+  <color:#1565C0>• <b>Validação:</b> JWT + Blockchain + StatusList</color>
+  <color:#7B1FA2>• <b>Padrões:</b> W3C VC, DID Resolution</color>
+  <color:#F57C00>• <b>Segurança:</b> Tripla verificação</color>
+end note
+
+@enduml

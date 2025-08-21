@@ -1,0 +1,115 @@
+@startuml
+!theme vibrant
+
+skinparam {
+  backgroundColor transparent
+  roundcorner 10
+  shadowing true
+
+  sequenceArrowColor #1565C0
+  sequenceArrowThickness 2
+  sequenceLifeLineBackgroundColor #F3E5F5
+  sequenceLifeLineBorderColor #4A148C
+  sequenceLifeLineBorderThickness 2
+
+  sequenceParticipantBackgroundColor #FFFFFF
+  sequenceParticipantBorderColor #7B1FA2
+  sequenceParticipantBorderThickness 2
+  sequenceParticipantFontColor #1A1A1A
+
+  sequenceActorBackgroundColor #E8F5E8
+  sequenceActorBorderColor #2E7D32
+  sequenceActorFontColor #1A1A1A
+
+  sequenceGroupBackgroundColor #E3F2FD
+  sequenceGroupBorderColor #1565C0
+  sequenceGroupHeaderFontColor #333333
+
+  noteFontColor #333333
+  noteBackgroundColor #F5F5F5
+  noteBorderColor #CCCCCC
+
+  defaultFontName "SF Pro Display"
+  defaultFontSize 12
+  sequenceMessageAlign left
+
+  minClassWidth 180
+  wrapWidth 200
+}
+
+title <size:20><color:#1A1A1A><b>IDBRA - Consulta de Credenciais pelo Holder</b></color></size>
+
+actor "👤 **Holder**\n<size:10>(Portador da Credencial)</size>" as HOLDER_USER #2E7D32
+participant "👤 **IDBRA-HOLDER**\n<size:10>:8084 - Serviço Portador</size>" as HOLDER #8b5cf6
+participant "🔐 **IDBRA-CUSTODY**\n<size:10>:8082 - Ponte Segura</size>" as CUSTODY #f59e0b
+participant "💾 **MongoDB**\n<size:10>Custody Database</size>" as DB_CUSTODY #10b981
+
+group <color:#333333><b>📋 1. LISTA DE CREDENCIAIS</b></color>
+  HOLDER_USER -> HOLDER: <color:#1565C0><size:14><b>1.1</b></size></color> GET /api/credentials/holder/{holderDid}
+  activate HOLDER #F3E5F5
+
+  HOLDER -> HOLDER: <color:#7B1FA2><size:14><b>1.2</b></size></color> 🔐 Validar identidade do holder
+
+  HOLDER -> CUSTODY: <color:#1565C0><size:14><b>1.3</b></size></color> GET /api/credentials/by-holder
+  activate CUSTODY #E3F2FD
+
+  CUSTODY -> DB_CUSTODY: <color:#1565C0><size:14><b>1.4</b></size></color> Buscar credenciais do holder
+  activate DB_CUSTODY #E8F5E8
+
+  DB_CUSTODY --> CUSTODY: <color:#2E7D32><size:14><b>1.5</b></size></color> ✅ Lista encontrada
+  deactivate DB_CUSTODY
+
+  CUSTODY --> HOLDER: <color:#2E7D32><size:14><b>1.6</b></size></color> ✅ Metadados das credenciais
+  deactivate CUSTODY
+
+  HOLDER --> HOLDER_USER: <color:#2E7D32><size:14><b>1.7</b></size></color> 📋 **Lista de credenciais**
+  deactivate HOLDER
+end
+
+group <color:#333333><b>🔍 2. DETALHES DA CREDENCIAL</b></color>
+  HOLDER_USER -> HOLDER: <color:#1565C0><size:14><b>2.1</b></size></color> GET /api/credentials/{credentialId}
+  activate HOLDER #F3E5F5
+
+  HOLDER -> HOLDER: <color:#7B1FA2><size:14><b>2.2</b></size></color> 🔒 Verificar propriedade
+
+  HOLDER -> CUSTODY: <color:#1565C0><size:14><b>2.3</b></size></color> GET /api/credentials/{id}/details
+  activate CUSTODY #E3F2FD
+
+  CUSTODY -> DB_CUSTODY: <color:#1565C0><size:14><b>2.4</b></size></color> Buscar dados completos
+  activate DB_CUSTODY #E8F5E8
+
+  DB_CUSTODY --> CUSTODY: <color:#2E7D32><size:14><b>2.5</b></size></color> ✅ Credencial completa
+  deactivate DB_CUSTODY
+
+  CUSTODY -> CUSTODY: <color:#7B1FA2><size:14><b>2.6</b></size></color> 📊 Verificar status atual
+
+  CUSTODY --> HOLDER: <color:#2E7D32><size:14><b>2.7</b></size></color> ✅ Dados + Status
+  deactivate CUSTODY
+
+  HOLDER --> HOLDER_USER: <color:#2E7D32><size:14><b>2.8</b></size></color> 📄 **Detalhes completos**
+  deactivate HOLDER
+end
+
+group <color:#333333><b>🔄 3. VERIFICAÇÃO DE STATUS</b></color>
+  HOLDER_USER -> HOLDER: <color:#1565C0><size:14><b>3.1</b></size></color> GET /api/credentials/{id}/status
+  activate HOLDER #F3E5F5
+
+  HOLDER -> CUSTODY: <color:#1565C0><size:14><b>3.2</b></size></color> GET /api/credentials/{id}/revocation-status
+  activate CUSTODY #E3F2FD
+
+  CUSTODY --> HOLDER: <color:#2E7D32><size:14><b>3.3</b></size></color> ✅ Status: VALID/REVOKED
+  deactivate CUSTODY
+
+  HOLDER --> HOLDER_USER: <color:#2E7D32><size:14><b>3.4</b></size></color> 🟢 **Status atualizado**
+  deactivate HOLDER
+end
+
+note over HOLDER_USER, DB_CUSTODY #F5F5F5
+  <color:#333333><b>🔐 Privacidade & Controle</b></color>
+  <color:#2E7D32>• <b>Acesso:</b> Apenas às próprias credenciais</color>
+  <color:#7B1FA2>• <b>Endpoints:</b> /holder/{did}, /{credentialId}</color>
+  <color:#1565C0>• <b>Verificação:</b> Status em tempo real</color>
+  <color:#F57C00>• <b>Controle:</b> Total sobre dados pessoais</color>
+end note
+
+@enduml
