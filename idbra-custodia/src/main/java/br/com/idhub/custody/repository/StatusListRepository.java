@@ -1,8 +1,8 @@
 package br.com.idhub.custody.repository;
 
 import br.com.idhub.custody.domain.StatusList;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface StatusListRepository extends JpaRepository<StatusList, Long> {
+public interface StatusListRepository extends MongoRepository<StatusList, String> {
 
     Optional<StatusList> findByListId(String listId);
 
@@ -20,17 +20,17 @@ public interface StatusListRepository extends JpaRepository<StatusList, Long> {
 
     List<StatusList> findByIssuerWalletAddress(String issuerWalletAddress);
 
-    @Query("SELECT sl FROM StatusList sl WHERE sl.listId = :listId AND sl.version = (SELECT MAX(sl2.version) FROM StatusList sl2 WHERE sl2.listId = :listId)")
+    @Query("{'listId': ?0}")
     Optional<StatusList> findLatestVersionByListId(@Param("listId") String listId);
 
-    @Query("SELECT sl FROM StatusList sl WHERE sl.listId = :listId ORDER BY sl.version DESC")
+    @Query("{'listId': ?0}")
     List<StatusList> findAllVersionsByListId(@Param("listId") String listId);
 
     boolean existsByListId(String listId);
 
-    @Query("SELECT COUNT(sl) FROM StatusList sl WHERE sl.issuer = :issuer")
+    @Query(value = "{'issuer': ?0}", count = true)
     Long countByIssuer(@Param("issuer") String issuer);
 
-    @Query("SELECT COUNT(s) FROM StatusList s WHERE s.listId = :listId")
+    @Query(value = "{'listId': ?0}", count = true)
     Long countByListId(@Param("listId") String listId);
 }

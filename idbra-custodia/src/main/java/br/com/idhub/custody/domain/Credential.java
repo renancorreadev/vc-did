@@ -1,56 +1,53 @@
 package br.com.idhub.custody.domain;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "credentials",
-       uniqueConstraints = {
-           @UniqueConstraint(columnNames = {"statusListId", "statusListIndex"})
-       })
+@Document(collection = "credentials")
 public class Credential {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(unique = true, nullable = false)
+    @Field("credentialId")
     private String credentialId;
 
-    @Column(nullable = false)
+    @Field("issuerDid")
     private String issuerDid;
 
-    @Column(nullable = false)
+    @Field("holderDid")
     private String holderDid;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Field("credentialData")
     private String credentialData;
 
-    @Column(nullable = false)
+    @Field("statusListId")
     private String statusListId;
 
-    @Column(nullable = false)
+    @Field("statusListIndex")
     private Integer statusListIndex;
 
-    @Column(nullable = false)
+    @Field("status")
     private String status; // VALID, REVOKED, SUSPENDED
 
-    @Column(nullable = false)
+    @Field("issuedAt")
     private LocalDateTime issuedAt;
 
-    @Column
+    @Field("expiresAt")
     private LocalDateTime expiresAt;
 
-    @Column(nullable = false)
+    @Field("createdAt")
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
+    @Field("updatedAt")
     private LocalDateTime updatedAt;
 
-    @Column(columnDefinition = "TEXT")
+    @Field("jwsToken")
     private String jwsToken;
 
-    @Column
+    @Field("issuerWalletAddress")
     private String issuerWalletAddress;
 
     // Construtores
@@ -60,7 +57,7 @@ public class Credential {
     }
 
     public Credential(String credentialId, String issuerDid, String holderDid,
-                     String credentialData, String statusListId, Integer statusListIndex) {
+            String credentialData, String statusListId, Integer statusListIndex) {
         this();
         this.credentialId = credentialId;
         this.issuerDid = issuerDid;
@@ -73,48 +70,116 @@ public class Credential {
     }
 
     // Getters e Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public String getCredentialId() { return credentialId; }
-    public void setCredentialId(String credentialId) { this.credentialId = credentialId; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public String getIssuerDid() { return issuerDid; }
-    public void setIssuerDid(String issuerDid) { this.issuerDid = issuerDid; }
+    public String getCredentialId() {
+        return credentialId;
+    }
 
-    public String getHolderDid() { return holderDid; }
-    public void setHolderDid(String holderDid) { this.holderDid = holderDid; }
+    public void setCredentialId(String credentialId) {
+        this.credentialId = credentialId;
+    }
 
-    public String getCredentialData() { return credentialData; }
-    public void setCredentialData(String credentialData) { this.credentialData = credentialData; }
+    public String getIssuerDid() {
+        return issuerDid;
+    }
 
-    public String getStatusListId() { return statusListId; }
-    public void setStatusListId(String statusListId) { this.statusListId = statusListId; }
+    public void setIssuerDid(String issuerDid) {
+        this.issuerDid = issuerDid;
+    }
 
-    public Integer getStatusListIndex() { return statusListIndex; }
-    public void setStatusListIndex(Integer statusListIndex) { this.statusListIndex = statusListIndex; }
+    public String getHolderDid() {
+        return holderDid;
+    }
 
-    public String getStatus() { return status; }
+    public void setHolderDid(String holderDid) {
+        this.holderDid = holderDid;
+    }
+
+    public String getCredentialData() {
+        return credentialData;
+    }
+
+    public void setCredentialData(String credentialData) {
+        this.credentialData = credentialData;
+    }
+
+    public String getStatusListId() {
+        return statusListId;
+    }
+
+    public void setStatusListId(String statusListId) {
+        this.statusListId = statusListId;
+    }
+
+    public Integer getStatusListIndex() {
+        return statusListIndex;
+    }
+
+    public void setStatusListIndex(Integer statusListIndex) {
+        this.statusListIndex = statusListIndex;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
     public void setStatus(String status) {
         this.status = status;
         this.updatedAt = LocalDateTime.now();
     }
 
-    public LocalDateTime getIssuedAt() { return issuedAt; }
-    public void setIssuedAt(LocalDateTime issuedAt) { this.issuedAt = issuedAt; }
+    public LocalDateTime getIssuedAt() {
+        return issuedAt;
+    }
 
-    public LocalDateTime getExpiresAt() { return expiresAt; }
-    public void setExpiresAt(LocalDateTime expiresAt) { this.expiresAt = expiresAt; }
+    public void setIssuedAt(LocalDateTime issuedAt) {
+        this.issuedAt = issuedAt;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getExpiresAt() {
+        return expiresAt;
+    }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public void setExpiresAt(LocalDateTime expiresAt) {
+        this.expiresAt = expiresAt;
+    }
 
-    public String getJwsToken() { return jwsToken; }
-    public void setJwsToken(String jwsToken) { this.jwsToken = jwsToken; }
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
 
-    public String getIssuerWalletAddress() { return issuerWalletAddress; }
-    public void setIssuerWalletAddress(String issuerWalletAddress) { this.issuerWalletAddress = issuerWalletAddress; }
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public String getJwsToken() {
+        return jwsToken;
+    }
+
+    public void setJwsToken(String jwsToken) {
+        this.jwsToken = jwsToken;
+    }
+
+    public String getIssuerWalletAddress() {
+        return issuerWalletAddress;
+    }
+
+    public void setIssuerWalletAddress(String issuerWalletAddress) {
+        this.issuerWalletAddress = issuerWalletAddress;
+    }
 }

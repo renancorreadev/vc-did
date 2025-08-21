@@ -1,0 +1,6 @@
+br/com/idhub/web3/config/OpenApiConfig.class
+br/com/idhub/web3/web/BlockchainController.class
+br/com/idhub/web3/service/BlockchainService.class
+br/com/idhub/web3/config/Web3Config.class
+br/com/idhub/web3/service/ContractService.class
+br/com/idhub/web3/Web3Application.class

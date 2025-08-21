@@ -1,0 +1,491 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: idbra-web3-service
+  profiles:
+    active: dev
+
+  # Configuração Redis (cache para transações pendentes)
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6380}
+    timeout: 2000ms
+    database: 0
+
+  # Configuração Blockchain
+  blockchain:
+    besu:
+      node-url: ${BESU_NODE_URL:http://144.22.179.183}
+    web3j:
+      chain-id: ${WEB3J_CHAIN_ID:1337}
+      network-id: ${WEB3J_NETWORK_ID:1337}
+    contracts:
+      did-registry-address: ${DID_REGISTRY_ADDRESS:0x34c2AcC42882C0279A64bB1a4B1083D483BdE886}
+    admin:
+      private-key: ${ADMIN_PRIVATE_KEY:8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63}
+
+# Configuração dos Smart Contracts
+blockchain:
+  did-registry-address: ${DID_REGISTRY_ADDRESS:0x34c2AcC42882C0279A64bB1a4B1083D483BdE886}
+  status-list-manager-address: ${STATUS_LIST_MANAGER_ADDRESS:0x93a284C91768F3010D52cD37f84f22c5052be40b}
+
+# Configuração de logging
+logging:
+  level:
+    br.com.idhub.web3: DEBUG
+    org.springframework.data.redis: DEBUG
+    org.web3j: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Configuração do SpringDoc OpenAPI (Swagger)
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    # Organização e ordenação
+    tags-sorter: alpha
+    operations-sorter: alpha
+    doc-expansion: none
+    default-models-expand-depth: 1
+    default-model-expand-depth: 1
+    display-request-duration: true
+    display-operation-id: false
+    # Personalização da interface
+    disable-swagger-default-url: true
+    deep-linking: true
+    filter: true
+    show-common-extensions: true
+    show-extensions: true
+    # CSS customizado para interface moderna
+    custom-css: |
+      /* 🎨 IDBra Web3 Service - Swagger UI Customizado */
+
+      /* Reset e base */
+      .swagger-ui {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: #1a1a1a;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      }
+
+      /* Header personalizado */
+      .swagger-ui .topbar {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px 0;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      }
+
+      .swagger-ui .topbar .download-url-wrapper {
+        display: none;
+      }
+
+      /* Info section modernizada */
+      .swagger-ui .info {
+        background: white;
+        border-radius: 16px;
+        padding: 32px;
+        margin: 24px 0;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+        border: 1px solid #e2e8f0;
+      }
+
+      .swagger-ui .info .title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 16px;
+        text-align: center;
+      }
+
+      .swagger-ui .info .description {
+        font-size: 1.1rem;
+        line-height: 1.7;
+        color: #475569;
+      }
+
+      .swagger-ui .info .description h2 {
+        color: #1e293b;
+        border-bottom: 3px solid #667eea;
+        padding-bottom: 8px;
+        margin-top: 32px;
+      }
+
+      .swagger-ui .info .description h3 {
+        color: #334155;
+        margin-top: 24px;
+      }
+
+      .swagger-ui .info .description table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 16px 0;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+
+      .swagger-ui .info .description th {
+        background: #667eea;
+        color: white;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+      }
+
+      .swagger-ui .info .description td {
+        padding: 12px;
+        border-bottom: 1px solid #e2e8f0;
+        background: white;
+      }
+
+      .swagger-ui .info .description tr:nth-child(even) td {
+        background: #f8fafc;
+      }
+
+      /* Servers section */
+      .swagger-ui .scheme-container {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 16px 0;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        border: 1px solid #e2e8f0;
+      }
+
+      .swagger-ui .scheme-container .servers-title {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 16px;
+      }
+
+      .swagger-ui .scheme-container select {
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 14px;
+        background: white;
+        color: #1e293b;
+      }
+
+      /* Tags organizados */
+      .swagger-ui .opblock-tag-section {
+        margin: 24px 0;
+      }
+
+      .swagger-ui .opblock-tag {
+        background: white;
+        border-radius: 12px;
+        margin: 16px 0;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+      }
+
+      .swagger-ui .opblock-tag .opblock-tag-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .swagger-ui .opblock-tag .opblock-tag-header:hover {
+        background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+      }
+
+      .swagger-ui .opblock-tag .opblock-tag-header h3 {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin: 0;
+      }
+
+      .swblock-description {
+        padding: 16px 20px;
+        background: #f8fafc;
+        color: #475569;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        border-top: 1px solid #e2e8f0;
+      }
+
+      /* Operações individuais */
+      .swagger-ui .opblock {
+        border-radius: 8px;
+        margin: 12px 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: 1px solid #e2e8f0;
+      }
+
+      .swagger-ui .opblock.opblock-get {
+        border-color: #10b981;
+      }
+
+      .swagger-ui .opblock.opblock-post {
+        border-color: #3b82f6;
+      }
+
+      .swagger-ui .opblock.opblock-put {
+        border-color: #f59e0b;
+      }
+
+      .swagger-ui .opblock.opblock-delete {
+        border-color: #ef4444;
+      }
+
+      .swagger-ui .opblock .opblock-summary {
+        padding: 16px 20px;
+        background: white;
+      }
+
+      .swagger-ui .opblock .opblock-summary .opblock-summary-method {
+        border-radius: 6px;
+        font-weight: 600;
+        padding: 6px 12px;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .swagger-ui .opblock .opblock-summary .opblock-summary-path {
+        font-weight: 500;
+        color: #1e293b;
+        font-size: 1.1rem;
+      }
+
+      .swagger-ui .opblock .opblock-summary .opblock-summary-description {
+        color: #64748b;
+        font-size: 0.95rem;
+        margin-top: 4px;
+      }
+
+      /* Try it out section */
+      .swagger-ui .opblock .opblock-summary-operation-id,
+      .swagger-ui .opblock .opblock-summary-path__deprecated {
+        display: none;
+      }
+
+      .swagger-ui .opblock .opblock-summary .opblock-summary-path__deprecated {
+        text-decoration: line-through;
+        opacity: 0.6;
+      }
+
+      /* Botões */
+      .swagger-ui .btn.execute {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 600;
+        color: white;
+        transition: all 0.3s ease;
+      }
+
+      .swagger-ui .btn.execute:hover {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+      }
+
+      .swagger-ui .btn.try-out__btn {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 600;
+        color: white;
+        transition: all 0.3s ease;
+      }
+
+      .swagger-ui .btn.try-out__btn:hover {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+      }
+
+      /* Parâmetros e respostas */
+      .swagger-ui .parameters-container,
+      .swagger-ui .responses-wrapper {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 16px 0;
+        border: 1px solid #e2e8f0;
+      }
+
+      .swagger-ui .parameters-container h4,
+      .swagger-ui .responses-wrapper h4 {
+        color: #1e293b;
+        font-weight: 600;
+        margin-bottom: 16px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e2e8f0;
+      }
+
+      .swagger-ui .parameter__name {
+        font-weight: 600;
+        color: #1e293b;
+      }
+
+      .swagger-ui .parameter__type {
+        color: #64748b;
+        font-size: 0.9rem;
+      }
+
+      .swagger-ui .parameter__required {
+        background: #ef4444;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+
+      /* Modelos e schemas */
+      .swagger-ui .model {
+        background: white;
+        border-radius: 8px;
+        padding: 16px;
+        margin: 12px 0;
+        border: 1px solid #e2e8f0;
+      }
+
+      .swagger-ui .model-title {
+        color: #1e293b;
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+
+      /* Responsividade */
+      @media (max-width: 768px) {
+        .swagger-ui .info {
+          padding: 20px;
+          margin: 16px 0;
+        }
+
+        .swagger-ui .info .title {
+          font-size: 2rem;
+        }
+
+        .swagger-ui .opblock-tag .opblock-tag-header {
+          padding: 16px;
+        }
+
+        .swagger-ui .opblock .opblock-summary {
+          padding: 12px 16px;
+        }
+      }
+
+      /* Animações e transições */
+      .swagger-ui .opblock-tag,
+      .swagger-ui .opblock,
+      .swagger-ui .model {
+        transition: all 0.3s ease;
+      }
+
+      .swagger-ui .opblock-tag:hover,
+      .swagger-ui .opblock:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+      }
+
+      /* Scrollbar customizada */
+      .swagger-ui ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .swagger-ui ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+      }
+
+      .swagger-ui ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+
+      .swagger-ui ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      /* Status codes coloridos */
+      .swagger-ui .response-col_status {
+        font-weight: 600;
+      }
+
+      .swagger-ui .response-col_status.response-200 {
+        color: #10b981;
+      }
+
+      .swagger-ui .response-col_status.response-400,
+      .swagger-ui .response-col_status.response-500 {
+        color: #ef4444;
+      }
+
+      .swagger-ui .response-col_status.response-401,
+      .swagger-ui .response-col_status.response-403 {
+        color: #f59e0b;
+      }
+
+      /* Loading states */
+      .swagger-ui .loading-container {
+        text-align: center;
+        padding: 40px;
+        color: #64748b;
+      }
+
+      .swagger-ui .loading-container::after {
+        content: '';
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #e2e8f0;
+        border-radius: 50%;
+        border-top-color: #667eea;
+        animation: spin 1s ease-in-out infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    # Configurações avançadas
+    try-it-out-enabled: true
+    request-interceptor: true
+    response-interceptor: true
+    # Configurações de segurança
+    oauth2-redirect-url: /swagger-ui/oauth2-redirect.html
+    # Configurações de cache
+    cache-control: "no-cache, no-store, must-revalidate"
+    # Configurações de CORS
+    cors-configuration:
+      allowed-origins: "*"
+      allowed-methods: "GET, POST, PUT, DELETE, OPTIONS"
+      allowed-headers: "*"
+  # Configurações globais
+  default-produces-media-type: application/json
+  default-consumes-media-type: application/json
+  # Configurações de grupos de API
+  groups:
+    blockchain:
+      paths-to-match: /api/blockchain/**
+      paths-to-exclude: /api/blockchain/health/**
+    wallets:
+      paths-to-match: /api/wallets/**
+    transactions:
+      paths-to-match: /api/transactions/**
+  # Configurações de cache
+  cache:
+    enabled: true
+    ttl: 300
+  # Configurações de logging
+  logging:
+    level: INFO
+    enabled: true

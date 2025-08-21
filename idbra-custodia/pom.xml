@@ -40,17 +40,16 @@
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
 
-    <!-- Spring Data JPA para persistência -->
+        <!-- Spring Data Redis para persistência em memória -->
     <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-jpa</artifactId>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-redis</artifactId>
     </dependency>
 
-    <!-- H2 Database para desenvolvimento -->
+    <!-- Spring Data MongoDB para persistência -->
     <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <scope>runtime</scope>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-mongodb</artifactId>
     </dependency>
 
     <!-- Web3j núcleo (compatível com Besu) -->
@@ -97,6 +96,13 @@
     <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
+    </dependency>
+
+    <!-- Spring Dotenv para carregar arquivo .env -->
+    <dependency>
+        <groupId>me.paulschwarz</groupId>
+        <artifactId>spring-dotenv</artifactId>
+        <version>4.0.0</version>
     </dependency>
 
     <!-- Logs JSON -->

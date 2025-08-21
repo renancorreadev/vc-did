@@ -1,8 +1,8 @@
 package br.com.idhub.custody.repository;
 
 import br.com.idhub.custody.domain.Wallet;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface WalletRepository extends JpaRepository<Wallet, Long> {
+public interface WalletRepository extends MongoRepository<Wallet, String> {
 
     /**
      * Busca carteira por endereço
@@ -35,18 +35,18 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
     /**
      * Busca carteiras por nome (case insensitive)
      */
-    @Query("SELECT w FROM Wallet w WHERE LOWER(w.name) LIKE LOWER(CONCAT('%', :name, '%')) AND w.active = true")
+    @Query("{'name': {$regex: ?0, $options: 'i'}, 'active': true}")
     List<Wallet> findByNameContainingIgnoreCase(@Param("name") String name);
 
     /**
      * Conta carteiras ativas
      */
-    @Query("SELECT COUNT(w) FROM Wallet w WHERE w.active = true")
+    @Query(value = "{'active': true}", count = true)
     long countActiveWallets();
 
     /**
      * Busca carteiras criadas após uma data específica
      */
-    @Query("SELECT w FROM Wallet w WHERE w.createdAt >= :date AND w.active = true")
+    @Query("{'createdAt': {$gte: ?0}, 'active': true}")
     List<Wallet> findWalletsCreatedAfter(@Param("date") java.time.LocalDateTime date);
 }

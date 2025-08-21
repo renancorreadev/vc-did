@@ -1,42 +1,41 @@
 package br.com.idhub.custody.domain;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "wallets")
+@Document(collection = "wallets")
 public class Wallet {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(unique = true, nullable = false)
+    @Field("address")
     private String address;
 
-    @Column(nullable = false)
+    @Field("name")
     private String name;
 
-    @Column(length = 1000)
+    @Field("description")
     private String description;
 
-    @Column(name = "encrypted_private_key", nullable = false, length = 2000)
+    @Field("encrypted_private_key")
     private String encryptedPrivateKey;
 
-    @Column(name = "encryption_salt", nullable = false, length = 100)
+    @Field("encryption_salt")
     private String encryptionSalt;
 
-    @Column(name = "created_at", nullable = false)
+    @Field("created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @Field("updated_at")
     private LocalDateTime updatedAt;
 
-    @Column(nullable = false)
+    @Field("active")
     private boolean active = true;
 
-    @Column(name = "wallet_type", nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Field("wallet_type")
     private WalletType walletType = WalletType.ETHEREUM;
 
     public enum WalletType {
@@ -44,7 +43,8 @@ public class Wallet {
     }
 
     // Construtores
-    public Wallet() {}
+    public Wallet() {
+    }
 
     public Wallet(String address, String name, String description, String encryptedPrivateKey, String encryptionSalt) {
         this.address = address;
@@ -57,11 +57,11 @@ public class Wallet {
     }
 
     // Getters e Setters
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -137,13 +137,11 @@ public class Wallet {
         this.walletType = walletType;
     }
 
-    @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
-    @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
     }

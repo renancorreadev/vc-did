@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # Redis para cache de transações pendentes
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis-web3
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-web3-data:/data
+    networks:
+      - web3-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Serviço Web3
+  web3-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: web3-service-dev
+    ports:
+      - "8081:8081"
+    environment:
+      # Redis Configuration
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+      # Blockchain Configuration
+      - BESU_NODE_URL=${BESU_NODE_URL:-http://144.22.179.183}
+      - WEB3J_CHAIN_ID=${WEB3J_CHAIN_ID:-1337}
+      - WEB3J_NETWORK_ID=${WEB3J_NETWORK_ID:-1337}
+      - DID_REGISTRY_ADDRESS=${DID_REGISTRY_ADDRESS:-0x34c2AcC42882C0279A64bB1a4B1083D483BdE886}
+      - ADMIN_PRIVATE_KEY=${ADMIN_PRIVATE_KEY:-8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63}
+
+      # Crypto Configuration
+      - CRYPTO_MASTER_PASSWORD=${CRYPTO_MASTER_PASSWORD:-defaultMasterPassword123!}
+
+      # App Configuration
+      - SPRING_PROFILES_ACTIVE=dev
+      - SERVER_PORT=8081
+    networks:
+      - web3-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  web3-network:
+    driver: bridge
+
+volumes:
+  redis-web3-data:

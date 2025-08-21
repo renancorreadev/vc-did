@@ -1,0 +1,983 @@
+{
+    "info": {
+        "name": "Credencial Educacional UFRJ - Fluxo Completo",
+        "description": "Fluxo completo de credencial verificável - wallets, DIDs, statuslist, emissão, verificação e revogação",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://147.93.11.54:8082",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "0. Setup Inicial",
+            "item": [
+                {
+                    "name": "Importar wallet administrativa",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/wallets/import-admin",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "wallets",
+                                "import-admin"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Admin wallet imported\", function () {",
+                                    "    pm.expect([200, 201]).to.include(pm.response.code);",
+                                    "});",
+                                    "",
+                                    "console.log(\"Admin wallet import:\", pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "1. Criação de Wallets",
+            "item": [
+                {
+                    "name": "1.1 Criar wallet do ISSUER (UFRJ)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/wallets?name=WalletUFRJ&description=Wallet Oficial UFRJ para Emissão de Credenciais Educacionais",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "wallets"
+                            ],
+                            "query": [
+                                {
+                                    "key": "name",
+                                    "value": "WalletUFRJ"
+                                },
+                                {
+                                    "key": "description",
+                                    "value": "Wallet Oficial UFRJ para Emissão de Credenciais Educacionais"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Issuer wallet created successfully\", function () {",
+                                    "    pm.expect([200, 201]).to.include(pm.response.code);",
+                                    "    pm.expect(pm.response.json().address).to.exist;",
+                                    "});",
+                                    "",
+                                    "// Salvar endereço da wallet do issuer",
+                                    "if (pm.response.json() && pm.response.json().address) {",
+                                    "    pm.collectionVariables.set('issuerWalletAddress', pm.response.json().address);",
+                                    "    console.log('Issuer Wallet Address saved:', pm.response.json().address);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "1.2 Criar wallet do HOLDER (Estudante)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/wallets?name=WalletEstudantePedro&description=Wallet do Estudante Pedro para Receber Credenciais",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "wallets"
+                            ],
+                            "query": [
+                                {
+                                    "key": "name",
+                                    "value": "WalletEstudantePedro"
+                                },
+                                {
+                                    "key": "description",
+                                    "value": "Wallet do Estudante Pedro para Receber Credenciais"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Holder wallet created successfully\", function () {",
+                                    "    pm.expect([200, 201]).to.include(pm.response.code);",
+                                    "    pm.expect(pm.response.json().address).to.exist;",
+                                    "});",
+                                    "",
+                                    "// Salvar endereço da wallet do holder",
+                                    "if (pm.response.json() && pm.response.json().address) {",
+                                    "    pm.collectionVariables.set('holderWalletAddress', pm.response.json().address);",
+                                    "    console.log('Holder Wallet Address saved:', pm.response.json().address);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "1.3 Verificar wallet do issuer",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/wallets/{{issuerWalletAddress}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "wallets",
+                                "{{issuerWalletAddress}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Issuer wallet exists\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "console.log('Issuer wallet details:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "1.4 Verificar wallet do holder",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/wallets/{{holderWalletAddress}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "wallets",
+                                "{{holderWalletAddress}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Holder wallet exists\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "console.log('Holder wallet details:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "1.5 Verificar se wallet tem ISSUER_ROLE",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/blockchain/check-role/{{issuerWalletAddress}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "blockchain",
+                                "check-role",
+                                "{{issuerWalletAddress}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Check issuer role\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "console.log('Issuer role status:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "1.6 Conceder ISSUER_ROLE",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/blockchain/grant-issuer-role/{{issuerWalletAddress}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "blockchain",
+                                "grant-issuer-role",
+                                "{{issuerWalletAddress}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Issuer role granted\", function () {",
+                                    "    pm.expect([200, 201]).to.include(pm.response.code);",
+                                    "});",
+                                    "",
+                                    "console.log('Issuer role granted:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "1.7 Verificar ISSUER_ROLE após concessão",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/blockchain/check-role/{{issuerWalletAddress}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "blockchain",
+                                "check-role",
+                                "{{issuerWalletAddress}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Issuer role confirmed\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "console.log('Issuer role after grant:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "2. Gerenciamento de DIDs",
+            "item": [
+                {
+                    "name": "2.1 Criar DID para holder (estudante)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/x-www-form-urlencoded"
+                            }
+                        ],
+                        "body": {
+                            "mode": "urlencoded",
+                            "urlencoded": [
+                                {
+                                    "key": "identity",
+                                    "value": "{{holderWalletAddress}}",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "didDocument",
+                                    "value": "{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:ethr:{{holderWalletAddress}}\",\"verificationMethod\":[{\"id\":\"did:ethr:{{holderWalletAddress}}#controller\",\"type\":\"EcdsaSecp256k1VerificationKey2019\",\"controller\":\"did:ethr:{{holderWalletAddress}}\",\"ethereumAddress\":\"{{holderWalletAddress}}\"}]}",
+                                    "type": "text"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/blockchain/did/create",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "blockchain",
+                                "did",
+                                "create"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Holder DID created\", function () {",
+                                    "    pm.expect([200, 201]).to.include(pm.response.code);",
+                                    "});",
+                                    "",
+                                    "console.log('Holder DID created:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "2.2 Criar DID para issuer (UFRJ)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/x-www-form-urlencoded"
+                            }
+                        ],
+                        "body": {
+                            "mode": "urlencoded",
+                            "urlencoded": [
+                                {
+                                    "key": "identity",
+                                    "value": "{{issuerWalletAddress}}",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "didDocument",
+                                    "value": "{\"@context\":[\"https://www.w3.org/ns/did/v1\"],\"id\":\"did:ethr:{{issuerWalletAddress}}\",\"verificationMethod\":[{\"id\":\"did:ethr:{{issuerWalletAddress}}#controller\",\"type\":\"EcdsaSecp256k1VerificationKey2019\",\"controller\":\"did:ethr:{{issuerWalletAddress}}\",\"ethereumAddress\":\"{{issuerWalletAddress}}\"}]}",
+                                    "type": "text"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/blockchain/did/create",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "blockchain",
+                                "did",
+                                "create"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Issuer DID created\", function () {",
+                                    "    pm.expect([200, 201]).to.include(pm.response.code);",
+                                    "});",
+                                    "",
+                                    "console.log('Issuer DID created:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "3. Criação de StatusList",
+            "item": [
+                {
+                    "name": "3.1 Criar StatusList para credenciais",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/statuslist?listId=educacao-ufrj-001&uri=https://idbra.example/status/educacao-ufrj-001.json&purpose=revocation&issuer=did:web:ufrj.br&issuerWalletAddress={{issuerWalletAddress}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "statuslist"
+                            ],
+                            "query": [
+                                {
+                                    "key": "listId",
+                                    "value": "educacao-ufrj-001"
+                                },
+                                {
+                                    "key": "uri",
+                                    "value": "https://idbra.example/status/educacao-ufrj-001.json"
+                                },
+                                {
+                                    "key": "purpose",
+                                    "value": "revocation"
+                                },
+                                {
+                                    "key": "issuer",
+                                    "value": "did:web:ufrj.br"
+                                },
+                                {
+                                    "key": "issuerWalletAddress",
+                                    "value": "{{issuerWalletAddress}}"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"StatusList created\", function () {",
+                                    "    pm.expect([200, 201]).to.include(pm.response.code);",
+                                    "});",
+                                    "",
+                                    "console.log('StatusList created:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "3.2 Verificar StatusList criada",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/statuslist",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "statuslist"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"StatusList retrieved\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "console.log('StatusList info:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "3.3 Verificar metadados da StatusList",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/statuslist/educacao-ufrj-001/metadata",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "statuslist",
+                                "educacao-ufrj-001",
+                                "metadata"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"StatusList metadata retrieved\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "console.log('StatusList metadata:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "4. Emissão de Credencial",
+            "item": [
+                {
+                    "name": "4.1 Criar credencial verificável (PRINCIPAL)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"issuerDid\": \"did:web:ufrj.br\",\n  \"holderDid\": \"did:ethr:{{holderWalletAddress}}\",\n  \"holderWalletAddress\": \"{{holderWalletAddress}}\",\n  \"credentialType\": \"EducationCredential\",\n  \"credentialSubject\": {\n    \"id\": \"did:ethr:{{holderWalletAddress}}\",\n    \"educationInfo\": {\n      \"studentName\": \"Pedro Henrique Costa\",\n      \"cpf\": \"555.666.777-88\",\n      \"studentId\": \"2019123456\",\n      \"degree\": \"Bacharel em Engenharia de Computação\",\n      \"institution\": \"Universidade Federal do Rio de Janeiro - UFRJ\",\n      \"faculty\": \"Escola Politécnica\",\n      \"graduationDate\": \"2024-07-15\",\n      \"admissionDate\": \"2019-03-01\",\n      \"finalGrade\": \"8.7\",\n      \"gradeScale\": \"0-10\",\n      \"honors\": \"Cum Laude\",\n      \"courseDuration\": \"5 anos\",\n      \"courseLoad\": \"3600 horas\",\n      \"thesis\": {\n        \"title\": \"Aplicações de Blockchain em Sistemas Distribuídos\",\n        \"advisor\": \"Prof. Dr. Roberto Silva\",\n        \"grade\": \"9.5\"\n      },\n      \"verificationDate\": \"2024-12-21\",\n      \"isValid\": true,\n      \"registrationNumber\": \"UFRJ-2024-ENG-001234\"\n    }\n  },\n  \"expiresAt\": \"2034-07-15T23:59:59\",\n  \"statusListId\": \"educacao-ufrj-001\",\n  \"issuerWalletAddress\": \"{{issuerWalletAddress}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/credentials",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "credentials"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Credential created successfully\", function () {",
+                                    "    pm.expect([200, 201]).to.include(pm.response.code);",
+                                    "    pm.expect(pm.response.json().credentialId).to.exist;",
+                                    "    pm.expect(pm.response.json().jwt).to.exist;",
+                                    "});",
+                                    "",
+                                    "// Salvar ID e JWT da credencial",
+                                    "if (pm.response.json()) {",
+                                    "    if (pm.response.json().credentialId) {",
+                                    "        pm.collectionVariables.set('credentialId', pm.response.json().credentialId);",
+                                    "        console.log('Credential ID saved:', pm.response.json().credentialId);",
+                                    "    }",
+                                    "    if (pm.response.json().jwt) {",
+                                    "        pm.collectionVariables.set('credentialJWT', pm.response.json().jwt);",
+                                    "        console.log('Credential JWT saved (first 50 chars):', pm.response.json().jwt.substring(0, 50) + '...');",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "4.2 Verificar credencial no blockchain",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/credentials/{{credentialId}}/exists",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "credentials",
+                                "{{credentialId}}",
+                                "exists"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Credential exists on blockchain\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "console.log('Credential blockchain status:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "4.3 Verificar credencial no sistema",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/credentials/{{credentialId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "credentials",
+                                "{{credentialId}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Credential retrieved from system\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "console.log('Credential system info:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "4.4 Verificar status de revogação",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/credentials/{{credentialId}}/revocation-status",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "credentials",
+                                "{{credentialId}}",
+                                "revocation-status"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Revocation status checked\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "console.log('Revocation status:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "5. Verificação de Credencial",
+            "item": [
+                {
+                    "name": "5.1 Verificar credencial com JWT",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "text/plain"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{{credentialJWT}}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/credentials/verify",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "credentials",
+                                "verify"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Credential verification successful\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "console.log('Credential verification result:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "5.2 Verificar StatusList após emissão",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/statuslist/educacao-ufrj-001/metadata",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "statuslist",
+                                "educacao-ufrj-001",
+                                "metadata"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"StatusList metadata after issue\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "console.log('StatusList after issue:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "6. Revogação de Credencial",
+            "item": [
+                {
+                    "name": "6.1 Revogar credencial emitida",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/credentials/{{credentialId}}/revoke",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "credentials",
+                                "{{credentialId}}",
+                                "revoke"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Credential revoked successfully\", function () {",
+                                    "    pm.expect([200, 201]).to.include(pm.response.code);",
+                                    "});",
+                                    "",
+                                    "console.log('Credential revocation result:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.2 Verificar credencial revogada",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "text/plain"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{{credentialJWT}}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/credentials/verify",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "credentials",
+                                "verify"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Revoked credential verification\", function () {",
+                                    "    pm.expect([200, 400, 401]).to.include(pm.response.code);",
+                                    "});",
+                                    "",
+                                    "console.log('Revoked credential verification:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.3 Verificar StatusList após revogação",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/statuslist/educacao-ufrj-001/metadata",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "statuslist",
+                                "educacao-ufrj-001",
+                                "metadata"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"StatusList after revocation\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "console.log('StatusList after revocation:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "6.4 Verificar status após revogação",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/credentials/{{credentialId}}/revocation-status",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "credentials",
+                                "{{credentialId}}",
+                                "revocation-status"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Final revocation status check\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "",
+                                    "console.log('Final revocation status:', pm.response.json());"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

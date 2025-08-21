@@ -1,45 +1,44 @@
 package br.com.idhub.custody.domain;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "status_lists",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"listId", "version"}))
+@Document(collection = "statuslists")
 public class StatusList {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(nullable = false)  // Remover unique = true
+    @Field("listId")
     private String listId;
 
-    @Column(nullable = false)
+    @Field("uri")
     private String uri;
 
-    @Column(nullable = false)
+    @Field("hash")
     private String hash;
 
-    @Column(nullable = false)
+    @Field("version")
     private Long version;
 
-    @Column(nullable = false)
+    @Field("purpose")
     private String purpose; // revocation, suspension
 
-    @Column(nullable = false)
+    @Field("issuer")
     private String issuer;
 
-    @Column(nullable = false)
+    @Field("createdAt")
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
+    @Field("updatedAt")
     private LocalDateTime updatedAt;
 
-    @Column(columnDefinition = "TEXT")
+    @Field("statusListData")
     private String statusListData; // JSON da lista de status
 
-    @Column
+    @Field("issuerWalletAddress")
     private String issuerWalletAddress;
 
     // Construtores
@@ -49,7 +48,7 @@ public class StatusList {
     }
 
     public StatusList(String listId, String uri, String hash, Long version,
-                     String purpose, String issuer) {
+            String purpose, String issuer) {
         this();
         this.listId = listId;
         this.uri = uri;
@@ -60,39 +59,92 @@ public class StatusList {
     }
 
     // Getters e Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public String getListId() { return listId; }
-    public void setListId(String listId) { this.listId = listId; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public String getUri() { return uri; }
-    public void setUri(String uri) { this.uri = uri; }
+    public String getListId() {
+        return listId;
+    }
 
-    public String getHash() { return hash; }
-    public void setHash(String hash) { this.hash = hash; }
+    public void setListId(String listId) {
+        this.listId = listId;
+    }
 
-    public Long getVersion() { return version; }
+    public String getUri() {
+        return uri;
+    }
+
+    public void setUri(String uri) {
+        this.uri = uri;
+    }
+
+    public String getHash() {
+        return hash;
+    }
+
+    public void setHash(String hash) {
+        this.hash = hash;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
     public void setVersion(Long version) {
         this.version = version;
         this.updatedAt = LocalDateTime.now();
     }
 
-    public String getPurpose() { return purpose; }
-    public void setPurpose(String purpose) { this.purpose = purpose; }
+    public String getPurpose() {
+        return purpose;
+    }
 
-    public String getIssuer() { return issuer; }
-    public void setIssuer(String issuer) { this.issuer = issuer; }
+    public void setPurpose(String purpose) {
+        this.purpose = purpose;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public String getIssuer() {
+        return issuer;
+    }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public void setIssuer(String issuer) {
+        this.issuer = issuer;
+    }
 
-    public String getStatusListData() { return statusListData; }
-    public void setStatusListData(String statusListData) { this.statusListData = statusListData; }
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
 
-    public String getIssuerWalletAddress() { return issuerWalletAddress; }
-    public void setIssuerWalletAddress(String issuerWalletAddress) { this.issuerWalletAddress = issuerWalletAddress; }
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public String getStatusListData() {
+        return statusListData;
+    }
+
+    public void setStatusListData(String statusListData) {
+        this.statusListData = statusListData;
+    }
+
+    public String getIssuerWalletAddress() {
+        return issuerWalletAddress;
+    }
+
+    public void setIssuerWalletAddress(String issuerWalletAddress) {
+        this.issuerWalletAddress = issuerWalletAddress;
+    }
 }

@@ -27,7 +27,8 @@ public class WalletService {
     private final CryptoService cryptoService;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public WalletService(Web3j web3j, Credentials credentials, WalletRepository walletRepository, CryptoService cryptoService) {
+    public WalletService(Web3j web3j, Credentials credentials, WalletRepository walletRepository,
+            CryptoService cryptoService) {
         this.web3j = web3j;
         this.credentials = credentials;
         this.walletRepository = walletRepository;
@@ -64,13 +65,12 @@ public class WalletService {
 
             // Retornar metadados (sem a chave privada)
             return new WalletMetadata(
-                savedWallet.getAddress(),
-                savedWallet.getName(),
-                savedWallet.getDescription(),
-                savedWallet.getCreatedAt(),
-                savedWallet.getUpdatedAt(),
-                savedWallet.isActive()
-            );
+                    savedWallet.getAddress(),
+                    savedWallet.getName(),
+                    savedWallet.getDescription(),
+                    savedWallet.getCreatedAt(),
+                    savedWallet.getUpdatedAt(),
+                    savedWallet.isActive());
 
         } catch (Exception e) {
             throw new RuntimeException("Erro ao criar carteira: " + e.getMessage(), e);
@@ -104,13 +104,12 @@ public class WalletService {
             Wallet savedWallet = walletRepository.save(wallet);
 
             return new WalletMetadata(
-                savedWallet.getAddress(),
-                savedWallet.getName(),
-                savedWallet.getDescription(),
-                savedWallet.getCreatedAt(),
-                savedWallet.getUpdatedAt(),
-                savedWallet.isActive()
-            );
+                    savedWallet.getAddress(),
+                    savedWallet.getName(),
+                    savedWallet.getDescription(),
+                    savedWallet.getCreatedAt(),
+                    savedWallet.getUpdatedAt(),
+                    savedWallet.isActive());
 
         } catch (Exception e) {
             throw new RuntimeException("Erro ao criar carteira com senha: " + e.getMessage(), e);
@@ -125,13 +124,12 @@ public class WalletService {
         if (walletOpt.isPresent()) {
             Wallet wallet = walletOpt.get();
             return new WalletMetadata(
-                wallet.getAddress(),
-                wallet.getName(),
-                wallet.getDescription(),
-                wallet.getCreatedAt(),
-                wallet.getUpdatedAt(),
-                wallet.isActive()
-            );
+                    wallet.getAddress(),
+                    wallet.getName(),
+                    wallet.getDescription(),
+                    wallet.getCreatedAt(),
+                    wallet.getUpdatedAt(),
+                    wallet.isActive());
         }
         throw new RuntimeException("Carteira não encontrada: " + address);
     }
@@ -142,15 +140,14 @@ public class WalletService {
     public List<WalletMetadata> getAllWallets() {
         List<Wallet> wallets = walletRepository.findByActiveTrue();
         return wallets.stream()
-            .map(wallet -> new WalletMetadata(
-                wallet.getAddress(),
-                wallet.getName(),
-                wallet.getDescription(),
-                wallet.getCreatedAt(),
-                wallet.getUpdatedAt(),
-                wallet.isActive()
-            ))
-            .collect(java.util.stream.Collectors.toList());
+                .map(wallet -> new WalletMetadata(
+                        wallet.getAddress(),
+                        wallet.getName(),
+                        wallet.getDescription(),
+                        wallet.getCreatedAt(),
+                        wallet.getUpdatedAt(),
+                        wallet.isActive()))
+                .collect(java.util.stream.Collectors.toList());
     }
 
     /**
@@ -257,13 +254,12 @@ public class WalletService {
             Wallet updatedWallet = walletRepository.save(wallet);
 
             return new WalletMetadata(
-                updatedWallet.getAddress(),
-                updatedWallet.getName(),
-                updatedWallet.getDescription(),
-                updatedWallet.getCreatedAt(),
-                updatedWallet.getUpdatedAt(),
-                updatedWallet.isActive()
-            );
+                    updatedWallet.getAddress(),
+                    updatedWallet.getName(),
+                    updatedWallet.getDescription(),
+                    updatedWallet.getCreatedAt(),
+                    updatedWallet.getUpdatedAt(),
+                    updatedWallet.isActive());
         }
         throw new RuntimeException("Carteira não encontrada: " + address);
     }
@@ -376,10 +372,9 @@ public class WalletService {
 
             // Retornar metadata
             return new WalletMetadata(
-                savedWallet.getAddress(),
-                savedWallet.getName(),
-                savedWallet.getDescription()
-            );
+                    savedWallet.getAddress(),
+                    savedWallet.getName(),
+                    savedWallet.getDescription());
 
         } catch (Exception e) {
             throw new RuntimeException("Erro ao importar wallet: " + e.getMessage(), e);
@@ -387,7 +382,8 @@ public class WalletService {
     }
 
     /**
-     * Obter credenciais administrativas a partir da chave privada configurada no ambiente
+     * Obter credenciais administrativas a partir da chave privada configurada no
+     * ambiente
      */
     public Credentials getAdminCredentials() {
         String adminPrivateKey = System.getenv("ADMIN_PRIVATE_KEY");
@@ -405,7 +401,8 @@ public class WalletService {
     }
 
     /**
-     * Importar wallet administrativa a partir da chave privada configurada no ambiente
+     * Importar wallet administrativa a partir da chave privada configurada no
+     * ambiente
      */
     public WalletMetadata importAdminWalletFromEnv(String name, String description) {
         String adminPrivateKey = System.getenv("ADMIN_PRIVATE_KEY");

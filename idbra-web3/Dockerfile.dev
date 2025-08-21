@@ -1,0 +1,25 @@
+# Dockerfile para desenvolvimento do IDBra Web3 Service
+FROM openjdk:21-jdk-slim
+
+# Criar usuário web3
+RUN groupadd -r web3 && useradd -r -g web3 web3
+
+# Instalar dependências básicas
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Criar diretório de trabalho
+WORKDIR /app
+
+# Copiar JAR compilado (não vamos compilar no container)
+COPY target/*.jar app.jar
+
+# Mudar para usuário web3
+USER web3
+
+# Expor porta
+EXPOSE 8081
+
+# Comando para executar
+CMD ["java", "-jar", "app.jar"]

@@ -1,8 +1,8 @@
 package br.com.idhub.custody.repository;
 
 import br.com.idhub.custody.domain.Credential;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface CredentialRepository extends JpaRepository<Credential, Long> {
+public interface CredentialRepository extends MongoRepository<Credential, String> {
 
     Optional<Credential> findByCredentialId(String credentialId);
 
@@ -27,13 +27,13 @@ public interface CredentialRepository extends JpaRepository<Credential, Long> {
 
     List<Credential> findByIssuerWalletAddress(String issuerWalletAddress);
 
-    @Query("SELECT c FROM Credential c WHERE c.issuedAt >= :fromDate")
+    @Query("{'issuedAt': {$gte: ?0}}")
     List<Credential> findCredentialsIssuedAfter(@Param("fromDate") LocalDateTime fromDate);
 
-    @Query("SELECT c FROM Credential c WHERE c.expiresAt <= :expiryDate AND c.status = 'VALID'")
+    @Query("{'expiresAt': {$lte: ?0}, 'status': 'VALID'}")
     List<Credential> findExpiredCredentials(@Param("expiryDate") LocalDateTime expiryDate);
 
-    @Query("SELECT COUNT(c) FROM Credential c WHERE c.statusListId = :statusListId")
+    @Query(value = "{'statusListId': ?0}", count = true)
     Long countByStatusListId(@Param("statusListId") String statusListId);
 
     boolean existsByCredentialId(String credentialId);

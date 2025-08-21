@@ -9,31 +9,34 @@ spring:
   profiles:
     active: dev
 
-  # Configuração do banco de dados H2 persistente
-  datasource:
-    url: jdbc:h2:file:./data/custodydb;DB_CLOSE_ON_EXIT=FALSE;AUTO_RECONNECT=TRUE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: password
+  # Configuração Redis (cache e persistência temporária)
+  redis:
+    host: localhost
+    port: 6381  # ✅ Mudando de 6379 para 6381 para evitar conflito
+    timeout: 2000ms
+    database: 0
 
-  # Configuração JPA/Hibernate
-  jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
-    hibernate:
-      ddl-auto: update  # Mudança de create-drop para update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
+  # Configuração MongoDB (persistência principal)
+  data:
+    mongodb:
+      uri: ${MONGO_URI:mongodb://admin:admin123@localhost:27017/custody?authSource=admin}
+      database: ${MONGO_DATABASE:custody}
+      username: ${MONGO_USERNAME:admin}
+      password: ${MONGO_PASSWORD:admin123}
+      host: ${MONGO_HOST:localhost}
+      port: ${MONGO_PORT:27017}
 
-  # Console H2 (para desenvolvimento)
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-      settings:
-        web-allow-others: true
-        web-port: 8082
+  # Configuração Blockchain
+  blockchain:
+    besu:
+      node-url: ${BESU_NODE_URL:http://144.22.179.183}
+    web3j:
+      chain-id: ${WEB3J_CHAIN_ID:1337}
+      network-id: ${WEB3J_NETWORK_ID:1337}
+    contracts:
+      did-registry-address: ${DID_REGISTRY_ADDRESS:0x34c2AcC42882C0279A64bB1a4B1083D483BdE886}
+    admin:
+      private-key: ${ADMIN_PRIVATE_KEY:8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63}
 
 web3:
   node:
@@ -72,8 +75,8 @@ logging:
     br.com.idhub.custody: DEBUG
     org.web3j: INFO
     org.springframework.web: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.data.redis: DEBUG
+    org.springframework.data.mongodb: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 

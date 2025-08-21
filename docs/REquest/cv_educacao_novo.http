@@ -1,0 +1,173 @@
+### ========================================
+### FLUXO COMPLETO DE CREDENCIAL EDUCACIONAL - DADOS NOVOS
+### ========================================
+
+### 1. Importar wallet administrativa no sistema
+POST http://147.93.11.54:8082/api/wallets/import-admin
+
+### ========================================
+### 2. CRIAÇÃO DE WALLETS - ISSUER E HOLDER SEPARADOS
+### ========================================
+
+### 2.1 Criar wallet do ISSUER (UFRJ - Universidade)
+# @name createIssuerWallet
+POST http://147.93.11.54:8082/api/wallets?name=WalletUFRJ&description=Wallet Oficial UFRJ para Emissão de Credenciais Educacionais
+Content-Type: application/json
+
+### 2.2 Criar wallet do HOLDER (Estudante)
+# @name createHolderWallet
+POST http://147.93.11.54:8082/api/wallets?name=WalletEstudantePedro&description=Wallet do Estudante Pedro para Receber Credenciais
+Content-Type: application/json
+
+### 2.3 Verificar wallet do issuer criada
+# @name checkIssuerWallet
+GET http://147.93.11.54:8082/api/wallets/{{createIssuerWallet.response.body.address}}
+
+### 2.4 Verificar wallet do holder criada
+# @name checkHolderWallet
+GET http://147.93.11.54:8082/api/wallets/{{createHolderWallet.response.body.address}}
+
+### 2.5 Verificar se wallet do issuer tem ISSUER_ROLE
+# @name checkIssuerRole
+GET http://147.93.11.54:8082/api/blockchain/check-role/{{createIssuerWallet.response.body.address}}
+
+### 2.6 Conceder ISSUER_ROLE para a wallet da UFRJ (se necessário)
+# @name grantIssuerRole
+POST http://147.93.11.54:8082/api/blockchain/grant-issuer-role/{{createIssuerWallet.response.body.address}}
+
+### 2.7 Verificar novamente se wallet do issuer tem ISSUER_ROLE após concessão
+# @name checkIssuerRoleAfterGrant
+GET http://147.93.11.54:8082/api/blockchain/check-role/{{createIssuerWallet.response.body.address}}
+
+### ========================================
+### 3. GERENCIAMENTO DE DID - CRIAÇÃO DE IDENTIDADES
+### ========================================
+
+### 3.1 Criar DID para o usuário holder (estudante Pedro)
+# @name createHolderDID
+POST http://147.93.11.54:8082/api/blockchain/did/create
+Content-Type: application/x-www-form-urlencoded
+
+identity={{createHolderWallet.response.body.address}}&didDocument={"@context":["https://www.w3.org/ns/did/v1"],"id":"did:ethr:{{createHolderWallet.response.body.address}}","verificationMethod":[{"id":"did:ethr:{{createHolderWallet.response.body.address}}#controller","type":"EcdsaSecp256k1VerificationKey2019","controller":"did:ethr:{{createHolderWallet.response.body.address}}","ethereumAddress":"{{createHolderWallet.response.body.address}}"}]}
+
+### 3.2 Criar DID para o issuer (UFRJ)
+# @name createIssuerDID
+POST http://147.93.11.54:8082/api/blockchain/did/create
+Content-Type: application/x-www-form-urlencoded
+
+identity={{createIssuerWallet.response.body.address}}&didDocument={"@context":["https://www.w3.org/ns/did/v1"],"id":"did:ethr:{{createIssuerWallet.response.body.address}}","verificationMethod":[{"id":"did:ethr:{{createIssuerWallet.response.body.address}}#controller","type":"EcdsaSecp256k1VerificationKey2019","controller":"did:ethr:{{createIssuerWallet.response.body.address}}","ethereumAddress":"{{createIssuerWallet.response.body.address}}"}]}
+
+### ========================================
+### 4. CRIAÇÃO DE STATUS LIST - BASE PARA CREDENCIAIS
+### ========================================
+
+### 4.1 Criar StatusList para credenciais educacionais
+# @name createStatusList
+POST http://147.93.11.54:8082/api/statuslist?listId=educacao-ufrj-001&uri=https://idbra.example/status/educacao-ufrj-001.json&purpose=revocation&issuer=did:web:ufrj.br&issuerWalletAddress={{createIssuerWallet.response.body.address}}
+
+### 4.2 Verificar StatusList criada
+# @name checkStatusList
+GET http://147.93.11.54:8082/api/statuslist
+
+### 4.3 Verificar metadados da StatusList
+# @name checkStatusListMetadata
+GET http://147.93.11.54:8082/api/statuslist/educacao-ufrj-001/metadata
+
+### ========================================
+### 5. EMISSÃO DE CREDENCIAL - TESTE PRINCIPAL COM WALLETS SEPARADAS
+### ========================================
+
+### 5.1 Criar credencial verificável de diploma universitário
+# @name createCredential
+POST http://147.93.11.54:8082/api/credentials
+Content-Type: application/json
+
+{
+  "issuerDid": "did:web:ufrj.br",
+  "holderDid": "did:ethr:{{createHolderWallet.response.body.address}}",
+  "holderWalletAddress": "{{createHolderWallet.response.body.address}}",
+  "credentialType": "EducationCredential",
+  "credentialSubject": {
+    "id": "did:ethr:{{createHolderWallet.response.body.address}}",
+    "educationInfo": {
+      "studentName": "Pedro Henrique Costa",
+      "cpf": "555.666.777-88",
+      "studentId": "2019123456",
+      "degree": "Bacharel em Engenharia de Computação",
+      "institution": "Universidade Federal do Rio de Janeiro - UFRJ",
+      "faculty": "Escola Politécnica",
+      "graduationDate": "2024-07-15",
+      "admissionDate": "2019-03-01",
+      "finalGrade": "8.7",
+      "gradeScale": "0-10",
+      "honors": "Cum Laude",
+      "courseDuration": "5 anos",
+      "courseLoad": "3600 horas",
+      "thesis": {
+        "title": "Aplicações de Blockchain em Sistemas Distribuídos",
+        "advisor": "Prof. Dr. Roberto Silva",
+        "grade": "9.5"
+      },
+      "verificationDate": "2024-12-21",
+      "isValid": true,
+      "registrationNumber": "UFRJ-2024-ENG-001234"
+    }
+  },
+  "expiresAt": "2034-07-15T23:59:59",
+  "statusListId": "educacao-ufrj-001",
+  "issuerWalletAddress": "{{createIssuerWallet.response.body.address}}"
+}
+
+### 5.2 Verificar credencial criada no blockchain
+# @name checkCredentialBlockchain
+GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/exists
+Content-Type: application/json
+
+### 5.3 Verificar credencial criada no sistema
+# @name checkCredential
+GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}
+
+### 5.4 Verificar status de revogação da credencial
+# @name checkRevocationStatus
+GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/revocation-status
+Content-Type: application/json
+
+### ========================================
+### 6. VERIFICAÇÃO DE CREDENCIAL - VALIDAÇÃO
+### ========================================
+
+### 6.1 Verificar credencial com JWT
+# @name verifyCredential
+POST http://147.93.11.54:8082/api/credentials/verify
+Content-Type: text/plain
+
+{{createCredential.response.body.jwt}}
+
+### 6.2 Verificar StatusList após emissão
+# @name checkStatusListAfterIssue
+GET http://147.93.11.54:8082/api/statuslist/educacao-ufrj-001/metadata
+
+### ========================================
+### 7. REVOGAÇÃO DE CREDENCIAL - TESTE DE REVOGAÇÃO
+### ========================================
+
+### 7.1 Revogar credencial emitida
+# @name revokeCredential
+POST http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/revoke
+Content-Type: application/json
+
+### 7.2 Verificar credencial revogada
+# @name verifyRevokedCredential
+POST http://147.93.11.54:8082/api/credentials/verify
+Content-Type: text/plain
+
+{{createCredential.response.body.jwt}}
+
+### 7.3 Verificar StatusList após revogação
+# @name checkStatusListAfterRevoke
+GET http://147.93.11.54:8082/api/statuslist/educacao-ufrj-001/metadata
+
+### 7.4 Verificar status de revogação após revogação
+# @name checkRevocationStatusAfterRevoke
+GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/revocation-status
+Content-Type: application/json
