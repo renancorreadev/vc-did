@@ -29,7 +29,7 @@ const request = {
 };
 
 // Endereço do novo contrato IDBraDIDRegistry deployado
-const IDBRA_DID_REGISTRY = "0x34c2AcC42882C0279A64bB1a4B1083D483BdE886" as `0x${string}`;
+const IDBRA_DID_REGISTRY = "0xc47a675198759Cf712a53Bb4a7EDbC33bb799285" as `0x${string}`;
 
 // Endereço que receberá todas as roles
 const TARGET_ADDRESS = "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73" as `0x${string}`;

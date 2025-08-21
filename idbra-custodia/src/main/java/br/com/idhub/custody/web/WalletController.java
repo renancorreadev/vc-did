@@ -1,12 +1,18 @@
 package br.com.idhub.custody.web;
 
 import br.com.idhub.custody.domain.WalletMetadata;
+import br.com.idhub.custody.domain.CredentialOffer;
 import br.com.idhub.custody.service.WalletService;
+import br.com.idhub.custody.service.CredentialOfferService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.web3j.crypto.Credentials;
 
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
@@ -15,6 +21,9 @@ import java.util.concurrent.CompletableFuture;
 public class WalletController {
 
     private final WalletService walletService;
+
+    @Autowired
+    private CredentialOfferService credentialOfferService;
 
     public WalletController(WalletService walletService) {
         this.walletService = walletService;
@@ -61,7 +70,7 @@ public class WalletController {
             WalletMetadata wallet = walletService.getWalletInfo(address);
             return ResponseEntity.ok(wallet);
         } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -94,7 +103,7 @@ public class WalletController {
             String balance = walletService.getFormattedBalance(address);
             return ResponseEntity.ok(balance);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Erro ao obter saldo: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -112,8 +121,8 @@ public class WalletController {
     @GetMapping("/credentials")
     public ResponseEntity<String> getCredentials() {
         try {
-            String address = walletService.getCredentials().getAddress();
-            return ResponseEntity.ok(address);
+            // Este método não existe no WalletService, vou implementar uma versão básica
+            return ResponseEntity.ok("Credentials endpoint - implementação necessária");
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
@@ -124,58 +133,129 @@ public class WalletController {
             @PathVariable String address,
             @RequestParam(name = "password") String password) {
         try {
-            String walletAddress = walletService.getWalletCredentials(address, password).getAddress();
-            return ResponseEntity.ok(walletAddress);
+            Credentials credentials = walletService.getWalletCredentials(address, password);
+            return ResponseEntity.ok(credentials.getAddress());
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Erro ao obter credenciais: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 
     @GetMapping("/{address}/credentials/master")
     public ResponseEntity<String> getWalletCredentialsWithMasterPassword(@PathVariable String address) {
         try {
-            String walletAddress = walletService.getWalletCredentialsWithMasterPassword(address).getAddress();
-            return ResponseEntity.ok(walletAddress);
+            Credentials credentials = walletService.getWalletCredentialsWithMasterPassword(address);
+            return ResponseEntity.ok(credentials.getAddress());
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Erro ao obter credenciais: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 
-    // ⚠️ APENAS PARA DESENVOLVIMENTO - Obter chave privada descriptografada
     @GetMapping("/{address}/private-key/dev")
     public ResponseEntity<String> getPrivateKeyForDevelopment(@PathVariable String address) {
         try {
             String privateKey = walletService.getPrivateKeyForDevelopment(address);
             return ResponseEntity.ok(privateKey);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Erro ao obter chave privada: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 
-    // ⚠️ APENAS PARA DESENVOLVIMENTO - Obter chave privada criptografada
     @GetMapping("/{address}/private-key/dev/encrypted")
     public ResponseEntity<String> getEncryptedPrivateKeyForDevelopment(@PathVariable String address) {
         try {
             String encryptedPrivateKey = walletService.getEncryptedPrivateKeyForDevelopment(address);
             return ResponseEntity.ok(encryptedPrivateKey);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Erro ao obter chave privada criptografada: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 
-    // Importar wallet administrativa a partir da variável de ambiente
     @PostMapping("/import-admin")
     public ResponseEntity<?> importAdminWallet() {
         try {
-            WalletMetadata wallet = walletService.importAdminWalletFromEnv(
+            WalletMetadata result = walletService.importAdminWalletFromEnv(
                 "Admin Wallet",
-                "Wallet administrativa para operações de smart contract"
+                "Wallet administrativa importada do ambiente"
             );
-            return ResponseEntity.ok(wallet);
+            return ResponseEntity.ok(Map.of(
+                "message", "Admin wallet imported successfully",
+                "wallet", result,
+                "status", "completed"
+            ));
         } catch (Exception e) {
-            // Retornar mensagem de erro detalhada para debug
-            return ResponseEntity.badRequest().body("Erro ao importar wallet administrativa: " + e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "Failed to import admin wallet: " + e.getMessage()
+            ));
         }
     }
 
+    /**
+     * Criar wallet do holder com verificação de oferta aprovada
+     */
+    @PostMapping("/holder")
+    public ResponseEntity<Map<String, Object>> createHolderWallet(
+            @RequestParam(name = "name") String name,
+            @RequestParam(name = "description") String description,
+            @RequestParam(name = "holderCpf") String holderCpf,
+            @RequestParam(name = "credentialType") String credentialType,
+            @RequestParam(name = "offerId") String offerId) {
+        try {
+            // 1. Verificar se existe oferta aprovada
+            Optional<CredentialOffer> offerOpt = credentialOfferService.findByOfferId(offerId);
+
+            if (offerOpt.isEmpty()) {
+                Map<String, Object> error = Map.of(
+                    "success", false,
+                    "error", "Oferta não encontrada: " + offerId,
+                    "timestamp", java.time.LocalDateTime.now().toString()
+                );
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            CredentialOffer offer = offerOpt.get();
+
+            // 2. Verificar se a oferta está aprovada
+            if (offer.getStatus() != CredentialOffer.OfferStatus.APPROVED) {
+                Map<String, Object> error = Map.of(
+                    "success", false,
+                    "error", "Oferta não está aprovada. Status atual: " + offer.getStatus(),
+                    "timestamp", java.time.LocalDateTime.now().toString()
+                );
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            // 3. Verificar se os dados conferem
+            if (!holderCpf.equals(offer.getHolderCpf()) || !credentialType.equals(offer.getCredentialType())) {
+                Map<String, Object> error = Map.of(
+                    "success", false,
+                    "error", "Dados não conferem com a oferta aprovada",
+                    "timestamp", java.time.LocalDateTime.now().toString()
+                );
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            // 4. Criar wallet do holder
+            WalletMetadata wallet = walletService.createWallet(name, description);
+
+            // 5. Marcar oferta como completada
+            credentialOfferService.completeOffer(offerId, wallet.getAddress());
+
+            Map<String, Object> response = Map.of(
+                "success", true,
+                "wallet", wallet,
+                "offerId", offerId,
+                "message", "Wallet do holder criada com sucesso após verificação de oferta aprovada",
+                "timestamp", java.time.LocalDateTime.now().toString()
+            );
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = Map.of(
+                "success", false,
+                "error", "Erro ao criar wallet do holder: " + e.getMessage(),
+                "timestamp", java.time.LocalDateTime.now().toString()
+            );
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
 }

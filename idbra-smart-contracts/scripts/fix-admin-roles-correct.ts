@@ -23,7 +23,7 @@ async function main() {
     console.log("Carteira administrativa (deployer):", adminAccount.address);
 
     // Endereço do contrato único IDBraDIDRegistry
-    const IDBRA_DID_REGISTRY = "0x34c2AcC42882C0279A64bB1a4B1083D483BdE886" as `0x${string}`;
+    const IDBRA_DID_REGISTRY = "0xc47a675198759Cf712a53Bb4a7EDbC33bb799285" as `0x${string}`;
 
     console.log("IDBraDIDRegistry:", IDBRA_DID_REGISTRY);
 

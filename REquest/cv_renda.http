@@ -5,110 +5,277 @@
 ### 1. Importar wallet administrativa no sistema
 POST http://147.93.11.54:8082/api/wallets/import-admin
 
-### ========================================
-### 2. CRIAÇÃO DE WALLETS - ISSUER E HOLDER SEPARADOS
-### ========================================
-
-### 2.1 Criar wallet do ISSUER (Receita Federal)
+### 2. Criar wallet do ISSUER (Receita Federal)
 # @name createIssuerWallet
-POST http://147.93.11.54:8082/api/wallets?name=WalletReceitaFederal&description=Wallet Oficial Receita Federal para Emissão de Credenciais de Renda
+POST http://147.93.11.54:8082/api/wallets?name=WalletReceitaFederal&description=Wallet Oficial Receita Federal
 Content-Type: application/json
 
-### 2.2 Criar wallet do HOLDER (Contribuinte)
-# @name createHolderWallet
-POST http://147.93.11.54:8082/api/wallets?name=WalletContribuinteLucia&description=Wallet da Contribuinte Lucia para Receber Credenciais
-Content-Type: application/json
 
-### 2.3 Verificar wallet do issuer criada
-# @name checkIssuerWallet
-GET http://147.93.11.54:8082/api/wallets/{{createIssuerWallet.response.body.address}}
-
-### 2.4 Verificar wallet do holder criada
-# @name checkHolderWallet
-GET http://147.93.11.54:8082/api/wallets/{{createHolderWallet.response.body.address}}
-
-### 2.5 Verificar se wallet do issuer tem ISSUER_ROLE
-# @name checkIssuerRole
-GET http://147.93.11.54:8082/api/blockchain/check-role/{{createIssuerWallet.response.body.address}}
-
-### 2.6 Conceder ISSUER_ROLE para a wallet da Receita Federal (se necessário)
+### 2.1 Conceder ISSUER_ROLE para a wallet da Receita Federal (se necessário)
 # @name grantIssuerRole
 POST http://147.93.11.54:8082/api/blockchain/grant-issuer-role/{{createIssuerWallet.response.body.address}}
 
-### 2.7 Verificar novamente se wallet do issuer tem ISSUER_ROLE após concessão
+### 2.2 Verificar novamente se wallet do issuer tem ISSUER_ROLE após concessão
 # @name checkIssuerRoleAfterGrant
 GET http://147.93.11.54:8082/api/blockchain/check-role/{{createIssuerWallet.response.body.address}}
 
+
+
 ### ========================================
-### 3. GERENCIAMENTO DE DID - CRIAÇÃO DE IDENTIDADES
+### FLUXO COMPLETO DE GERAÇÃO DE OFERTAS
 ### ========================================
 
-### 3.1 Criar DID para o usuário holder (contribuinte Lucia)
+### 3.  Holder cria oferta de credencial de renda
+# @name createCredentialOffer
+POST http://147.93.11.54:8082/api/credential-offers
+Content-Type: application/json
+
+{
+  "holderName": "Lucia Fernanda Oliveira",
+  "holderEmail": "lucia.oliveira@email.com",
+  "holderCpf": "222.333.444-55",
+  "credentialType": "IncomeCredential",
+  "issuerDid": "did:web:receita.fazenda.gov.br",
+  "requestedData": {
+    "incomeDataRequest": {
+      "taxYear": "2024",
+      "requestedFields": [
+        "annualIncome",
+        "monthlyIncome",
+        "netIncome",
+        "taxesPaid",
+        "incomeType"
+      ],
+      "purpose": "Comprovação de renda para processo de financiamento",
+      "employer": {
+        "name": "Tech Solutions Ltda",
+        "cnpj": "12.345.678/0001-90"
+      }
+    }
+  }
+}
+
+
+### 4. Listar ofertas pendentes (usado pelo emissor)
+# @name listPendingOffers
+GET http://147.93.11.54:8082/api/credential-offers/pending?issuerDid=did:web:receita.fazenda.gov.br
+
+
+
+### 5. Aprovar oferta (usado pelo emissor)
+# @name approveOffer
+POST http://147.93.11.54:8082/api/credential-offers/{{createCredentialOffer.response.body.offerId}}/approve?approverWalletAddress={{createIssuerWallet.response.body.address}}
+
+
+### ========================================
+### 6. CRIAÇÃO DE WALLET HOLDER
+### ========================================
+
+### 6.1 Criar wallet do HOLDER com verificação de oferta aprovada
+# @name createHolderWallet
+POST http://147.93.11.54:8082/api/wallets/holder?name=WalletContribuinteLucia&description=Wallet da Contribuinte Lucia&holderCpf=222.333.444-55&credentialType=IncomeCredential&offerId={{createCredentialOffer.response.body.offerId}}
+Content-Type: application/json
+
+HTTP/1.1 200 OK
+Vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Thu, 21 Aug 2025 15:45:24 GMT
+Connection: close
+
+{
+  "timestamp": "2025-08-21T15:45:24.348991921",
+  "message": "Wallet do holder criada com sucesso após verificação de oferta aprovada",
+  "wallet": {
+    "address": "0xaf4a2fe13334809dab6fbe849183754619e03218",
+    "name": "WalletContribuinteLucia",
+    "description": "Wallet da Contribuinte Lucia",
+    "createdAt": "2025-08-21T15:45:24.341694773",
+    "updatedAt": "2025-08-21T15:45:24.341701782",
+    "active": true
+  },
+  "success": true,
+  "offerId": "OFFER-8FEDA155"
+}
+
+
+### 6.2 Verificar wallet do holder criada
+# @name checkHolderWallet
+GET http://147.93.11.54:8082/api/wallets/{{createHolderWallet.response.body.wallet.address}}
+
+HTTP/1.1 200 OK
+Vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Thu, 21 Aug 2025 15:46:03 GMT
+Connection: close
+
+{
+  "address": "0xaf4a2fe13334809dab6fbe849183754619e03218",
+  "name": "WalletContribuinteLucia",
+  "description": "Wallet da Contribuinte Lucia",
+  "createdAt": "2025-08-21T15:45:24.341695",
+  "updatedAt": "2025-08-21T15:45:24.341702",
+  "active": true
+}
+
+
+### ========================================
+### 8. GERENCIAMENTO DE DID - CRIAÇÃO DE IDENTIDADES
+### ========================================
+
+### 8.1 Criar DID para o usuário holder (contribuinte Lucia)
 # @name createHolderDID
 POST http://147.93.11.54:8082/api/blockchain/did/create
 Content-Type: application/x-www-form-urlencoded
 
-identity={{createHolderWallet.response.body.address}}&didDocument={"@context":["https://www.w3.org/ns/did/v1"],"id":"did:ethr:{{createHolderWallet.response.body.address}}","verificationMethod":[{"id":"did:ethr:{{createHolderWallet.response.body.address}}#controller","type":"EcdsaSecp256k1VerificationKey2019","controller":"did:ethr:{{createHolderWallet.response.body.address}}","ethereumAddress":"{{createHolderWallet.response.body.address}}"}]}
+identity={{createHolderWallet.response.body.wallet.address}}&didDocument={"@context":["https://www.w3.org/ns/did/v1"],"id":"did:ethr:{{createHolderWallet.response.body.wallet.address}}","verificationMethod":[{"id":"did:ethr:{{createHolderWallet.response.body.wallet.address}}#controller","type":"EcdsaSecp256k1VerificationKey2019","controller":"did:ethr:{{createHolderWallet.response.body.wallet.address}}","ethereumAddress":"{{createHolderWallet.response.body.wallet.address}}"}]}
 
-### 3.2 Criar DID para o issuer (Receita Federal)
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Thu, 21 Aug 2025 15:47:38 GMT
+Connection: close
+
+{
+  "transactionHash": "0xe5a54b9e0779f9beb926ee18af748faa7f4118bb66621e6814a3f97e0176bb29",
+  "success": true,
+  "timestamp": "2025-08-21T15:47:38.952423199",
+  "identity": "0xaf4a2fe13334809dab6fbe849183754619e03218"
+}
+### 8.2 Criar DID para o issuer (Receita Federal)
 # @name createIssuerDID
 POST http://147.93.11.54:8082/api/blockchain/did/create
 Content-Type: application/x-www-form-urlencoded
 
 identity={{createIssuerWallet.response.body.address}}&didDocument={"@context":["https://www.w3.org/ns/did/v1"],"id":"did:ethr:{{createIssuerWallet.response.body.address}}","verificationMethod":[{"id":"did:ethr:{{createIssuerWallet.response.body.address}}#controller","type":"EcdsaSecp256k1VerificationKey2019","controller":"did:ethr:{{createIssuerWallet.response.body.address}}","ethereumAddress":"{{createIssuerWallet.response.body.address}}"}]}
 
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Thu, 21 Aug 2025 15:47:58 GMT
+Connection: close
+
+{
+  "transactionHash": "0x7e68086dc564bd19dbd16daf8f7073e7831fd4da04187e188fae52dfda4e0ffc",
+  "success": true,
+  "timestamp": "2025-08-21T15:47:58.122239191",
+  "identity": "0x4a2af205488c2547684eb73ba2340be3a6a4f9b2"
+}
+
 ### ========================================
-### 4. CRIAÇÃO DE STATUS LIST - BASE PARA CREDENCIAIS
+### 9. CRIAÇÃO DE STATUS LIST - BASE PARA CREDENCIAIS
 ### ========================================
 
-### 4.1 Criar StatusList para credenciais de renda
+### 9.1 Criar StatusList para credenciais de renda
 # @name createStatusList
 POST http://147.93.11.54:8082/api/statuslist?listId=renda-receita-001&uri=https://idbra.example/status/renda-receita-001.json&purpose=revocation&issuer=did:web:receita.fazenda.gov.br&issuerWalletAddress={{createIssuerWallet.response.body.address}}
 
-### 4.2 Verificar StatusList criada
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Thu, 21 Aug 2025 15:48:12 GMT
+Connection: close
+
+{
+  "id": 1,
+  "listId": "renda-receita-001",
+  "uri": "https://idbra.example/status/renda-receita-001.json",
+  "hash": "0x0x0dcb5b4b4a31875e95bb035eb9f7dc3b8954bdbd4b65670421646f23a24b3cec",
+  "version": 1,
+  "purpose": "revocation",
+  "issuer": "did:web:receita.fazenda.gov.br",
+  "createdAt": "2025-08-21T15:48:10.237487638",
+  "updatedAt": "2025-08-21T15:48:10.237495318",
+  "statusListData": "{\"id\":\"https://idbra.example/status/renda-receita-001.json\",\"type\":\"StatusList2021Credential\",\"issuer\":\"did:web:receita.fazenda.gov.br\",\"issued\":\"2025-08-21T15:48:10.233327028\",\"validFrom\":\"2025-08-21T15:48:10.233327028\",\"validUntil\":\"2035-08-21T15:48:10.233748368\",\"credentialSubject\":\"{statusPurpose=revocation, id=https://idbra.example/status/renda-receita-001.json, type=StatusList2021, encodedList=}\",\"statusList\":[],\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://w3id.org/vc/status-list/2021/v1\"]}",
+  "issuerWalletAddress": "0x4a2af205488c2547684eb73ba2340be3a6a4f9b2"
+}
+
+
+### 9.2 Verificar StatusList criada
 # @name checkStatusList
 GET http://147.93.11.54:8082/api/statuslist
 
-### 4.3 Verificar metadados da StatusList
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Thu, 21 Aug 2025 15:48:21 GMT
+Connection: close
+
+[
+  {
+    "id": 1,
+    "listId": "renda-receita-001",
+    "uri": "https://idbra.example/status/renda-receita-001.json",
+    "hash": "0x0x0dcb5b4b4a31875e95bb035eb9f7dc3b8954bdbd4b65670421646f23a24b3cec",
+    "version": 1,
+    "purpose": "revocation",
+    "issuer": "did:web:receita.fazenda.gov.br",
+    "createdAt": "2025-08-21T15:48:10.237488",
+    "updatedAt": "2025-08-21T15:48:10.237495",
+    "statusListData": "{\"id\":\"https://idbra.example/status/renda-receita-001.json\",\"type\":\"StatusList2021Credential\",\"issuer\":\"did:web:receita.fazenda.gov.br\",\"issued\":\"2025-08-21T15:48:10.233327028\",\"validFrom\":\"2025-08-21T15:48:10.233327028\",\"validUntil\":\"2035-08-21T15:48:10.233748368\",\"credentialSubject\":\"{statusPurpose=revocation, id=https://idbra.example/status/renda-receita-001.json, type=StatusList2021, encodedList=}\",\"statusList\":[],\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://w3id.org/vc/status-list/2021/v1\"]}",
+    "issuerWalletAddress": "0x4a2af205488c2547684eb73ba2340be3a6a4f9b2"
+  }
+]
+
+
+### 9.3 Verificar metadados da StatusList
 # @name checkStatusListMetadata
 GET http://147.93.11.54:8082/api/statuslist/renda-receita-001/metadata
 
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Thu, 21 Aug 2025 15:48:36 GMT
+Connection: close
+
+{
+  "listId": "renda-receita-001",
+  "createdAt": "2025-08-21T15:48:10.237488",
+  "purpose": "revocation",
+  "validCredentials": 0,
+  "revokedCredentials": 0,
+  "totalCredentials": 0,
+  "uri": "https://idbra.example/status/renda-receita-001.json",
+  "version": 1,
+  "hash": "0x0x0dcb5b4b4a31875e95bb035eb9f7dc3b8954bdbd4b65670421646f23a24b3cec",
+  "issuer": "did:web:receita.fazenda.gov.br",
+  "updatedAt": "2025-08-21T15:48:10.237495"
+}
+
+
 ### ========================================
-### 5. EMISSÃO DE CREDENCIAL - TESTE PRINCIPAL COM WALLETS SEPARADAS
+### 10. EMISSÃO DE CREDENCIAL - TESTE PRINCIPAL COM WALLETS SEPARADAS
 ### ========================================
 
-### 5.1 Criar credencial verificável de comprovante de renda
+### 10.1 Criar credencial verificável de comprovante de renda
 # @name createCredential
 POST http://147.93.11.54:8082/api/credentials
 Content-Type: application/json
 
 {
   "issuerDid": "did:web:receita.fazenda.gov.br",
-  "holderDid": "did:ethr:{{createHolderWallet.response.body.address}}",
-  "holderWalletAddress": "{{createHolderWallet.response.body.address}}",
+  "holderDid": "did:ethr:{{createHolderWallet.response.body.wallet.address}}",
+  "holderWalletAddress": "{{createHolderWallet.response.body.wallet.address}}",
   "credentialType": "IncomeCredential",
   "credentialSubject": {
-    "id": "did:ethr:{{createHolderWallet.response.body.address}}",
+    "id": "did:ethr:{{createHolderWallet.response.body.wallet.address}}",
     "incomeInfo": {
       "taxpayerName": "Lucia Fernanda Oliveira",
       "cpf": "222.333.444-55",
       "taxYear": "2024",
       "annualIncome": "120000.00",
-      "currency": "BRL",
+      "monthlyIncome": "10000.00",
+      "netIncome": "102000.00",
+      "taxesPaid": "18000.00",
       "incomeType": "Assalariado",
+      "currency": "BRL",
       "employer": {
         "name": "Tech Solutions Ltda",
-        "cnpj": "12.345.678/0001-90",
-        "address": "Av. Paulista, 1000 - São Paulo/SP"
+        "cnpj": "12.345.678/0001-90"
       },
-      "monthlyIncome": "10000.00",
-      "taxesPaid": "18000.00",
-      "netIncome": "102000.00",
-      "declarationStatus": "Entregue",
-      "declarationDate": "2024-04-30",
       "verificationDate": "2024-12-21",
       "isRegular": true,
-      "hasPendingIssues": false,
       "receiptNumber": "2024123456789012345"
     }
   },
@@ -117,56 +284,202 @@ Content-Type: application/json
   "issuerWalletAddress": "{{createIssuerWallet.response.body.address}}"
 }
 
-### 5.2 Verificar credencial criada no blockchain
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Thu, 21 Aug 2025 15:49:09 GMT
+Connection: close
+
+{
+  "success": true,
+  "credentialId": "urn:uuid:976ac891-ec11-418d-b167-2f240477b2c9",
+  "jwt": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweGFmNGEyZmUxMzMzNDgwOWRhYjZmYmU4NDkxODM3NTQ2MTllMDMyMTgiLCJpc3MiOiJkaWQ6d2ViOnJlY2VpdGEuZmF6ZW5kYS5nb3YuYnIiLCJleHAiOjE3NjcyMjU1OTksImlhdCI6MTc1NTc5MTM0NywidmMiOnsidHlwZSI6WyJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsIkluY29tZUNyZWRlbnRpYWwiXSwiY3JlZGVudGlhbFN0YXR1cyI6eyJpZCI6Imh0dHBzOi8vaWRicmEuZXhhbXBsZS9zdGF0dXMvcmVuZGEtcmVjZWl0YS0wMDEuanNvbiMxIiwic3RhdHVzTGlzdEluZGV4IjoxLCJzdGF0dXNQdXJwb3NlIjoicmV2b2NhdGlvbiIsInR5cGUiOiJTdGF0dXNMaXN0MjAyMUVudHJ5Iiwic3RhdHVzTGlzdENyZWRlbnRpYWwiOiJodHRwczovL2lkYnJhLmV4YW1wbGUvc3RhdHVzL3JlbmRhLXJlY2VpdGEtMDAxLmpzb24ifSwiQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy9leGFtcGxlcy92MSJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJpZCI6ImRpZDpldGhyOjB4YWY0YTJmZTEzMzM0ODA5ZGFiNmZiZTg0OTE4Mzc1NDYxOWUwMzIxOCIsImluY29tZUluZm8iOnsidGF4cGF5ZXJOYW1lIjoiTHVjaWEgRmVybmFuZGEgT2xpdmVpcmEiLCJjcGYiOiIyMjIuMzMzLjQ0NC01NSIsInRheFllYXIiOiIyMDI0IiwiYW5udWFsSW5jb21lIjoiMTIwMDAwLjAwIiwibW9udGhseUluY29tZSI6IjEwMDAwLjAwIiwibmV0SW5jb21lIjoiMTAyMDAwLjAwIiwidGF4ZXNQYWlkIjoiMTgwMDAuMDAiLCJpbmNvbWVUeXBlIjoiQXNzYWxhcmlhZG8iLCJjdXJyZW5jeSI6IkJSTCIsImVtcGxveWVyIjp7Im5hbWUiOiJUZWNoIFNvbHV0aW9ucyBMdGRhIiwiY25waiI6IjEyLjM0NS42NzgvMDAwMS05MCJ9LCJ2ZXJpZmljYXRpb25EYXRlIjoiMjAyNC0xMi0yMSIsImlzUmVndWxhciI6dHJ1ZSwicmVjZWlwdE51bWJlciI6IjIwMjQxMjM0NTY3ODkwMTIzNDUifX19LCJqdGkiOiJ1cm46dXVpZDo5NzZhYzg5MS1lYzExLTQxOGQtYjE2Ny0yZjI0MDQ3N2IyYzkifQ.simulated_signature",
+  "timestamp": "2025-08-21T15:49:09.290690705"
+}
+
+
+### 10.2 Verificar credencial criada no blockchain
 # @name checkCredentialBlockchain
 GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/exists
 Content-Type: application/json
 
-### 5.3 Verificar credencial criada no sistema
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Thu, 21 Aug 2025 15:50:41 GMT
+Connection: close
+
+{
+  "exists": true,
+  "credentialId": "urn:uuid:976ac891-ec11-418d-b167-2f240477b2c9",
+  "message": "Credencial existe no blockchain",
+  "timestamp": "2025-08-21T15:50:41.762009680"
+}
+
+### 10.3 Verificar credencial criada no sistema
 # @name checkCredential
 GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}
 
-### 5.4 Verificar status de revogação da credencial
+### 10.4 Verificar status de revogação da credencial
 # @name checkRevocationStatus
 GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/revocation-status
 Content-Type: application/json
 
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Thu, 21 Aug 2025 15:50:51 GMT
+Connection: close
+
+{
+  "id": 1,
+  "credentialId": "urn:uuid:976ac891-ec11-418d-b167-2f240477b2c9",
+  "issuerDid": "did:web:receita.fazenda.gov.br",
+  "holderDid": "did:ethr:0xaf4a2fe13334809dab6fbe849183754619e03218",
+  "credentialData": "{\"sub\":\"did:ethr:0xaf4a2fe13334809dab6fbe849183754619e03218\",\"iss\":\"did:web:receita.fazenda.gov.br\",\"exp\":1767225599,\"iat\":1755791347,\"vc\":{\"type\":[\"VerifiableCredential\",\"IncomeCredential\"],\"credentialStatus\":{\"id\":\"https://idbra.example/status/renda-receita-001.json#1\",\"statusListIndex\":1,\"statusPurpose\":\"revocation\",\"type\":\"StatusList2021Entry\",\"statusListCredential\":\"https://idbra.example/status/renda-receita-001.json\"},\"@context\":[\"https://www.w3.org/2018/credentials/v1\",\"https://www.w3.org/2018/credentials/examples/v1\"],\"credentialSubject\":{\"id\":\"did:ethr:0xaf4a2fe13334809dab6fbe849183754619e03218\",\"incomeInfo\":{\"taxpayerName\":\"Lucia Fernanda Oliveira\",\"cpf\":\"222.333.444-55\",\"taxYear\":\"2024\",\"annualIncome\":\"120000.00\",\"monthlyIncome\":\"10000.00\",\"netIncome\":\"102000.00\",\"taxesPaid\":\"18000.00\",\"incomeType\":\"Assalariado\",\"currency\":\"BRL\",\"employer\":{\"name\":\"Tech Solutions Ltda\",\"cnpj\":\"12.345.678/0001-90\"},\"verificationDate\":\"2024-12-21\",\"isRegular\":true,\"receiptNumber\":\"2024123456789012345\"}}},\"jti\":\"urn:uuid:976ac891-ec11-418d-b167-2f240477b2c9\"}",
+  "statusListId": "renda-receita-001",
+  "statusListIndex": 1,
+  "status": "VALID",
+  "issuedAt": "2025-08-21T15:49:07.260805",
+  "expiresAt": "2025-12-31T23:59:59",
+  "createdAt": "2025-08-21T15:49:07.260786",
+  "updatedAt": "2025-08-21T15:49:07.260793",
+  "jwsToken": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweGFmNGEyZmUxMzMzNDgwOWRhYjZmYmU4NDkxODM3NTQ2MTllMDMyMTgiLCJpc3MiOiJkaWQ6d2ViOnJlY2VpdGEuZmF6ZW5kYS5nb3YuYnIiLCJleHAiOjE3NjcyMjU1OTksImlhdCI6MTc1NTc5MTM0NywidmMiOnsidHlwZSI6WyJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsIkluY29tZUNyZWRlbnRpYWwiXSwiY3JlZGVudGlhbFN0YXR1cyI6eyJpZCI6Imh0dHBzOi8vaWRicmEuZXhhbXBsZS9zdGF0dXMvcmVuZGEtcmVjZWl0YS0wMDEuanNvbiMxIiwic3RhdHVzTGlzdEluZGV4IjoxLCJzdGF0dXNQdXJwb3NlIjoicmV2b2NhdGlvbiIsInR5cGUiOiJTdGF0dXNMaXN0MjAyMUVudHJ5Iiwic3RhdHVzTGlzdENyZWRlbnRpYWwiOiJodHRwczovL2lkYnJhLmV4YW1wbGUvc3RhdHVzL3JlbmRhLXJlY2VpdGEtMDAxLmpzb24ifSwiQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy9leGFtcGxlcy92MSJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJpZCI6ImRpZDpldGhyOjB4YWY0YTJmZTEzMzM0ODA5ZGFiNmZiZTg0OTE4Mzc1NDYxOWUwMzIxOCIsImluY29tZUluZm8iOnsidGF4cGF5ZXJOYW1lIjoiTHVjaWEgRmVybmFuZGEgT2xpdmVpcmEiLCJjcGYiOiIyMjIuMzMzLjQ0NC01NSIsInRheFllYXIiOiIyMDI0IiwiYW5udWFsSW5jb21lIjoiMTIwMDAwLjAwIiwibW9udGhseUluY29tZSI6IjEwMDAwLjAwIiwibmV0SW5jb21lIjoiMTAyMDAwLjAwIiwidGF4ZXNQYWlkIjoiMTgwMDAuMDAiLCJpbmNvbWVUeXBlIjoiQXNzYWxhcmlhZG8iLCJjdXJyZW5jeSI6IkJSTCIsImVtcGxveWVyIjp7Im5hbWUiOiJUZWNoIFNvbHV0aW9ucyBMdGRhIiwiY25waiI6IjEyLjM0NS42NzgvMDAwMS05MCJ9LCJ2ZXJpZmljYXRpb25EYXRlIjoiMjAyNC0xMi0yMSIsImlzUmVndWxhciI6dHJ1ZSwicmVjZWlwdE51bWJlciI6IjIwMjQxMjM0NTY3ODkwMTIzNDUifX19LCJqdGkiOiJ1cm46dXVpZDo5NzZhYzg5MS1lYzExLTQxOGQtYjE2Ny0yZjI0MDQ3N2IyYzkifQ.simulated_signature",
+  "issuerWalletAddress": "0x4a2af205488c2547684eb73ba2340be3a6a4f9b2"
+}
+
+
 ### ========================================
-### 6. VERIFICAÇÃO DE CREDENCIAL - VALIDAÇÃO
+### 11. VERIFICAÇÃO DE CREDENCIAL - VALIDAÇÃO
 ### ========================================
 
-### 6.1 Verificar credencial com JWT
+### 11.1 Verificar credencial com JWT
 # @name verifyCredential
 POST http://147.93.11.54:8082/api/credentials/verify
 Content-Type: text/plain
 
 {{createCredential.response.body.jwt}}
 
-### 6.2 Verificar StatusList após emissão
+### 11.2 Verificar StatusList após emissão
 # @name checkStatusListAfterIssue
 GET http://147.93.11.54:8082/api/statuslist/renda-receita-001/metadata
 
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Thu, 21 Aug 2025 15:51:22 GMT
+Connection: close
+
+{
+  "valid": true,
+  "credentialId": "urn:uuid:976ac891-ec11-418d-b167-2f240477b2c9",
+  "issuerDid": "did:web:receita.fazenda.gov.br",
+  "holderDid": "did:ethr:0xaf4a2fe13334809dab6fbe849183754619e03218",
+  "status": "VALID",
+  "issuedAt": "2025-08-21T15:49:07.260805",
+  "expiresAt": "2025-12-31T23:59:59",
+  "errors": null,
+  "warnings": null
+}
+
 ### ========================================
-### 7. REVOGAÇÃO DE CREDENCIAL - TESTE DE REVOGAÇÃO
+### 12. REVOGAÇÃO DE CREDENCIAL - TESTE DE REVOGAÇÃO
 ### ========================================
 
-### 7.1 Revogar credencial emitida
+### 12.1 Revogar credencial emitida
 # @name revokeCredential
 POST http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/revoke
 Content-Type: application/json
 
-### 7.2 Verificar credencial revogada
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Thu, 21 Aug 2025 15:51:40 GMT
+Connection: close
+
+{
+  "timestamp": "2025-08-21T15:51:40.095055198",
+  "message": "Credencial revogada com sucesso",
+  "success": true,
+  "revoked": true,
+  "credentialId": "urn:uuid:976ac891-ec11-418d-b167-2f240477b2c9"
+}
+
+
+### 12.2 Verificar credencial revogada
 # @name verifyRevokedCredential
 POST http://147.93.11.54:8082/api/credentials/verify
 Content-Type: text/plain
 
 {{createCredential.response.body.jwt}}
 
-### 7.3 Verificar StatusList após revogação
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Thu, 21 Aug 2025 15:52:05 GMT
+Connection: close
+
+{
+  "valid": false,
+  "credentialId": "urn:uuid:976ac891-ec11-418d-b167-2f240477b2c9",
+  "issuerDid": "did:web:receita.fazenda.gov.br",
+  "holderDid": "did:ethr:0xaf4a2fe13334809dab6fbe849183754619e03218",
+  "status": "REVOKED",
+  "issuedAt": "2025-08-21T15:49:07.260805",
+  "expiresAt": "2025-12-31T23:59:59",
+  "errors": [
+    "Credencial revogada"
+  ],
+  "warnings": null
+}
+
+
+### 12.3 Verificar StatusList após revogação
 # @name checkStatusListAfterRevoke
 GET http://147.93.11.54:8082/api/statuslist/renda-receita-001/metadata
 
-### 7.4 Verificar status de revogação após revogação
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Thu, 21 Aug 2025 15:52:18 GMT
+Connection: close
+
+{
+  "listId": "renda-receita-001",
+  "createdAt": "2025-08-21T15:51:35.698405",
+  "purpose": "revocation",
+  "validCredentials": 1,
+  "revokedCredentials": 1,
+  "totalCredentials": 2,
+  "uri": "https://idbra.example/status/renda-receita-001.json",
+  "version": 2,
+  "hash": "0x0xc24a6d26af31c55f56cfd962d47b1b307efee1ea16b4134d4c967d8e2b17a184",
+  "issuer": "did:web:receita.fazenda.gov.br",
+  "updatedAt": "2025-08-21T15:51:35.698408"
+}
+
+### 12.4 Verificar status de revogação após revogação
 # @name checkRevocationStatusAfterRevoke
 GET http://147.93.11.54:8082/api/credentials/{{createCredential.response.body.credentialId}}/revocation-status
 Content-Type: application/json
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Thu, 21 Aug 2025 15:52:41 GMT
+Connection: close
+
+{
+  "isRevoked": true,
+  "credentialId": "urn:uuid:976ac891-ec11-418d-b167-2f240477b2c9",
+  "revocationRecord": {
+    "credentialId": "urn:uuid:976ac891-ec11-418d-b167-2f240477b2c9",
+    "revoker": "0x4a2af205488c2547684eb73ba2340be3a6a4f9b2",
+    "revokedAt": 1755791496,
+    "reason": "",
+    "createdAt": null,
+    "updatedAt": "2025-08-21T15:52:41.080572858",
+    "revoked": true
+  },
+  "timestamp": "2025-08-21T15:52:41.080594999"
+}

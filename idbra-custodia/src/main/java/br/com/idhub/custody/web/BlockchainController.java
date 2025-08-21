@@ -18,7 +18,7 @@ public class BlockchainController {
     private BlockchainService blockchainService;
 
     // Endereços hardcoded temporariamente
-    private static final String DID_REGISTRY_ADDRESS = "0x34c2AcC42882C0279A64bB1a4B1083D483BdE886";
+    private static final String DID_REGISTRY_ADDRESS = "0xc47a675198759Cf712a53Bb4a7EDbC33bb799285";
 
     /**
      * Verificar se uma wallet tem ISSUER_ROLE em ambos os contratos

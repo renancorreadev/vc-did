@@ -35,7 +35,7 @@ public class BlockchainService {
     @Autowired
     private ContractService contractService;
 
-    @Value("${blockchain.did-registry-address:0x34c2AcC42882C0279A64bB1a4B1083D483BdE886}")
+    @Value("${blockchain.did-registry-address:0xc47a675198759Cf712a53Bb4a7EDbC33bb799285}")
     private String didRegistryAddress;
 
     // Remover esta linha completamente:
